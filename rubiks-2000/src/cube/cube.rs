@@ -275,21 +275,42 @@ impl Cube {
     }
 }
 
+
+/// WARNING: je l'ai changé pour qu'elle match avec les test des autres solveurs
+/// enlever le comments pour revenir à notre format de base
+
 /// Display implementation for CubieCube (to_string() method)
 /// # Format :
 /// (corner, orientation) ... (edge, orientation)
 impl fmt::Display for Cube {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut string = String::new();
-        for corner in 0..8 {
+        //string += "|";
+        //for edge in 0..12 {
+        for edge in [1, 0, 3, 2, 5, 4, 7, 6, 8, 9, 11, 10] {
+            // The 12 edges
+            //string += format!("({},{})", self.ep[edge], self.eo[edge]).as_str();
+            string += format!("{} ", self.ep[edge]).as_str();
+        }
+        //for corner in 0..8 {
             // NOTE: how to use the enum here rather than 0..8 ??
             // The 8 corners
-            string += format!("({},{})", self.cp[corner], self.co[corner]).as_str();
-        }
-        string += "|";
-        for edge in 0..12 {
-            // The 12 edges
-            string += format!("({},{})", self.ep[edge], self.eo[edge]).as_str();
+            //string += format!("({},{})", self.cp[corner], self.co[corner]).as_str();
+
+
+        for corner in [0, 3, 2, 1, 4, 5, 6, 7] {  
+            let f = match self.cp[corner] {
+                Corner::URF => "UFR",
+                Corner::UFL => "ULF",
+                Corner::ULB => "UBL",
+                Corner::UBR => "URB",
+                Corner::DFR => "DRF",
+                Corner::DLF => "DFL",
+                Corner::DBL => "DLB",
+                Corner::DRB => "DBR"
+            };
+            
+            string += format!("{} ", f).as_str();
         }
         write!(f, "{}", string)
     }
