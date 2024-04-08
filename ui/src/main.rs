@@ -1,11 +1,9 @@
 extern crate gtk;
-use gtk::{
-    gdk, gio, Application, ApplicationWindow, Box, Button, CssProvider, Label, StyleContext,
-};
-use gtk::{prelude::*, STYLE_PROVIDER_PRIORITY_APPLICATION};
-use std::cell::RefCell;
+use gtk::{false_, prelude::*, Builder};
+use gtk::{Application, ApplicationWindow, Button, Box, Label};
+use std::time::{Instant, Duration};
 use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::cell::RefCell;
 
 struct Chronometer {
     start_time: Option<Instant>,
@@ -25,7 +23,7 @@ impl Chronometer {
     fn start(&mut self) {
         self.start_time = Some(Instant::now());
     }
-
+ 
     fn pause(&mut self) {
         if let Some(start) = self.start_time {
             self.last_pause_time = Some(Instant::now());
@@ -87,37 +85,51 @@ fn rubikronometer() {
     stop_button.connect_clicked(move |_| {
         let elapsed_time = chronometer_clone.borrow().elapsed();
         println!("Temps écoulé: {:.2} secondes", elapsed_time);
-        label_clone.set_text(&format!(
-            "Rubik's effectué en : {:.2} secondes",
-            elapsed_time
-        ));
+        label_clone.set_text(&format!("Rubik's effectué en : {:.2} secondes", elapsed_time));
     });
     vbox.pack_start(&stop_button, false, false, 0);
 
     window.show_all();
 }
 
-fn open_empty_window() {
-    let window = gtk::Window::new(gtk::WindowType::Toplevel);
-    window.set_title("Enter your cube");
-    window.set_default_size(300, 200);
 
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 2);
-    window.add(&vbox);
-
-    let camera_button = gtk::Button::with_label("Open Camera🎥");
-    camera_button.set_widget_name("start_button"); //css
-    vbox.pack_start(&camera_button, false, false, 0);
-
-    window.show_all();
+fn open_main(builder: &Builder){
+    let menu_view: gtk::Viewport = builder.object("menu_view").expect("Couldn't get view stack");
+    let main_view: gtk::Viewport = builder.object("main_view").expect("Couldn't get view stack");
+    let timer_view: gtk::Viewport = builder.object("rubikronometer_view").expect("Couldn't get view stack");
+    menu_view.set_visible(false);
+    main_view.set_visible(true);
+    timer_view.set_visible(false);
 }
 
+fn open_timer(builder: &Builder){
+    let menu_view: gtk::Viewport = builder.object("menu_view").expect("Couldn't get view stack");
+    let main_view: gtk::Viewport = builder.object("main_view").expect("Couldn't get view stack");
+    let timer_view: gtk::Viewport = builder.object("rubikronometer_view").expect("Couldn't get view stack");
+    menu_view.set_visible(false);
+    main_view.set_visible(false);
+    timer_view.set_visible(true);
+}
+
+fn open_menu(builder: &Builder){
+    let menu_view: gtk::Viewport = builder.object("menu_view").expect("Couldn't get view stack");
+    let main_view: gtk::Viewport = builder.object("main_view").expect("Couldn't get view stack");
+    let timer_view: gtk::Viewport = builder.object("rubikronometer_view").expect("Couldn't get view stack");
+    menu_view.set_visible(true);
+    main_view.set_visible(false);
+    timer_view.set_visible(false);
+}
+
+
+
+
 fn main() {
-    gtk::init().expect("Failed to initialize GTK.");
+    let app = Application::new(
+        Some("com.rubiks3000.app"),
+        Default::default(),
+    );
 
-    let app = Application::new(Some("com.rubiks3000.app"), Default::default());
-
-    app.connect_startup(|app| {
+    /*app.connect_startup(|app| {
         // The CSS "magic" happens here.
         let provider = gtk::CssProvider::new();
         // Load the CSS file
@@ -128,40 +140,42 @@ fn main() {
             &provider,
             gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
         );
-    });
+    });*/
 
     app.connect_activate(|app| {
         // Création de la fenêtre de menu
-        let menu_window = ApplicationWindow::new(app);
-        menu_window.set_title("Menu");
-        menu_window.set_default_size(600, 400);
+        let builder = gtk::Builder::from_file("/mnt/c/Users/artbo/rubiks-2000/ui/ui.glade");
+        let window : gtk::Window = builder.object("main_window").expect("Non");
 
-        let menu_box = Box::new(gtk::Orientation::Vertical, 0);
-        menu_window.add(&menu_box);
 
-        let open_main_button = Button::with_label("Rubikronometer");
-        open_main_button.set_widget_name("menu_button"); //css
-        open_main_button.connect_clicked(|_| {
-            rubikronometer();
-        });
-        menu_box.pack_start(&open_main_button, true, true, 5);
-
-        let open_empty_button = Button::with_label("Solver");
-        open_empty_button.set_widget_name("menu_button"); //css
-        open_empty_button.connect_clicked(|_| {
-            open_empty_window();
-        });
-        menu_box.pack_start(&open_empty_button, true, true, 5);
-
-        let button_exit = Button::with_label("Exit");
-        button_exit.set_widget_name("button_exit"); //css
-        button_exit.connect_clicked(|_| {
+        //Menu buttons 
+        let quit_button:gtk::Button = builder.object("quit_button").expect("Pas bouton");
+        quit_button.connect_clicked(|_| {
             gtk::main_quit();
         });
-        menu_box.pack_start(&button_exit, false, false, 5);
 
-        menu_window.show_all();
+        let timer_button:gtk::Button = builder.object("timer_button").expect("Pas bouton");
+        timer_button.connect_clicked( move |_| {
+            open_timer(&builder);
+        });
+
+        let main_button:gtk::Button = builder.object("solver_button").expect("Pas bouton");
+        main_button.connect_clicked( move |_| {
+            open_main(&builder);
+        });
+
+        //main buttons
+        let menu_button:gtk::Button = builder.object("menu_button").expect("Pas bouton");
+        main_button.connect_clicked( move |_| {
+            open_menu(&builder);
+        });
+
+
+        window.set_application(Some(app));
+        window.show_all();
     });
 
     app.run();
 }
+
+
