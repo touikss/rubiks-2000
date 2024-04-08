@@ -26,5 +26,5 @@ fn main() {
     // converti en string
     let s = c.to_string();
 
-    dbg!(s);
+    dbg!(s)
 }

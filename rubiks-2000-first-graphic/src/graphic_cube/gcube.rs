@@ -121,7 +121,7 @@ impl Cublet {
 }
 
 pub struct Gcube {
-    cube: Cube,
+    pub cube: Cube,
     cublets: Vec<Cublet>,
 }
 

@@ -1,9 +1,11 @@
 extern crate gtk;
+use gtk::{
+    gdk, gio, Application, ApplicationWindow, Box, Button, CssProvider, Label, StyleContext,
+};
 use gtk::{prelude::*, STYLE_PROVIDER_PRIORITY_APPLICATION};
-use gtk::{Application, ApplicationWindow, Button, Box, Label, CssProvider, StyleContext,gdk,gio};
-use std::time::{Instant, Duration};
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 struct Chronometer {
     start_time: Option<Instant>,
@@ -23,7 +25,7 @@ impl Chronometer {
     fn start(&mut self) {
         self.start_time = Some(Instant::now());
     }
- 
+
     fn pause(&mut self) {
         if let Some(start) = self.start_time {
             self.last_pause_time = Some(Instant::now());
@@ -85,7 +87,10 @@ fn rubikronometer() {
     stop_button.connect_clicked(move |_| {
         let elapsed_time = chronometer_clone.borrow().elapsed();
         println!("Temps écoulé: {:.2} secondes", elapsed_time);
-        label_clone.set_text(&format!("Rubik's effectué en : {:.2} secondes", elapsed_time));
+        label_clone.set_text(&format!(
+            "Rubik's effectué en : {:.2} secondes",
+            elapsed_time
+        ));
     });
     vbox.pack_start(&stop_button, false, false, 0);
 
@@ -104,17 +109,13 @@ fn open_empty_window() {
     camera_button.set_widget_name("start_button"); //css
     vbox.pack_start(&camera_button, false, false, 0);
 
-
     window.show_all();
 }
 
 fn main() {
     gtk::init().expect("Failed to initialize GTK.");
 
-    let app = Application::new(
-        Some("com.rubiks3000.app"),
-        Default::default(),
-    );
+    let app = Application::new(Some("com.rubiks3000.app"), Default::default());
 
     app.connect_startup(|app| {
         // The CSS "magic" happens here.
@@ -164,5 +165,3 @@ fn main() {
 
     app.run();
 }
-
-

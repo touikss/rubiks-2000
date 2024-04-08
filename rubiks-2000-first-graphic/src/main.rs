@@ -24,5 +24,7 @@ fn main() {
         gcube.apply_move(&mut window, Lp, 0);
         gcube.apply_move(&mut window, V, 1);
         gcube.apply_move(&mut window, Hp, 3);
+        let s  = gcube.cube.to_string();
+        dbg!(s);
     }
 }
