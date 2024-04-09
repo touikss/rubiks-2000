@@ -1,9 +1,9 @@
 extern crate gtk;
 use gtk::{false_, prelude::*, Builder};
-use gtk::{Application, ApplicationWindow, Button, Box, Label};
-use std::time::{Instant, Duration};
-use std::rc::Rc;
+use gtk::{Application, ApplicationWindow, Box, Button, Label};
 use std::cell::RefCell;
+use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 struct Chronometer {
     start_time: Option<Instant>,
@@ -23,7 +23,7 @@ impl Chronometer {
     fn start(&mut self) {
         self.start_time = Some(Instant::now());
     }
- 
+
     fn pause(&mut self) {
         if let Some(start) = self.start_time {
             self.last_pause_time = Some(Instant::now());
@@ -85,49 +85,63 @@ fn rubikronometer() {
     stop_button.connect_clicked(move |_| {
         let elapsed_time = chronometer_clone.borrow().elapsed();
         println!("Temps écoulé: {:.2} secondes", elapsed_time);
-        label_clone.set_text(&format!("Rubik's effectué en : {:.2} secondes", elapsed_time));
+        label_clone.set_text(&format!(
+            "Rubik's effectué en : {:.2} secondes",
+            elapsed_time
+        ));
     });
     vbox.pack_start(&stop_button, false, false, 0);
 
     window.show_all();
 }
 
-
-fn open_main(builder: &Builder){
-    let menu_view: gtk::Viewport = builder.object("menu_view").expect("Couldn't get view stack");
-    let main_view: gtk::Viewport = builder.object("main_view").expect("Couldn't get view stack");
-    let timer_view: gtk::Viewport = builder.object("rubikronometer_view").expect("Couldn't get view stack");
+fn open_main(builder: &Builder) {
+    let menu_view: gtk::Viewport = builder
+        .object("menu_view")
+        .expect("Couldn't get view stack");
+    let main_view: gtk::Viewport = builder
+        .object("main_view")
+        .expect("Couldn't get view stack");
+    let timer_view: gtk::Viewport = builder
+        .object("rubikronometer_view")
+        .expect("Couldn't get view stack");
     menu_view.set_visible(false);
     main_view.set_visible(true);
     timer_view.set_visible(false);
 }
 
-fn open_timer(builder: &Builder){
-    let menu_view: gtk::Viewport = builder.object("menu_view").expect("Couldn't get view stack");
-    let main_view: gtk::Viewport = builder.object("main_view").expect("Couldn't get view stack");
-    let timer_view: gtk::Viewport = builder.object("rubikronometer_view").expect("Couldn't get view stack");
+fn open_timer(builder: &Builder) {
+    let menu_view: gtk::Viewport = builder
+        .object("menu_view")
+        .expect("Couldn't get view stack");
+    let main_view: gtk::Viewport = builder
+        .object("main_view")
+        .expect("Couldn't get view stack");
+    let timer_view: gtk::Viewport = builder
+        .object("rubikronometer_view")
+        .expect("Couldn't get view stack");
     menu_view.set_visible(false);
     main_view.set_visible(false);
     timer_view.set_visible(true);
 }
 
-fn open_menu(builder: &Builder){
-    let menu_view: gtk::Viewport = builder.object("menu_view").expect("Couldn't get view stack");
-    let main_view: gtk::Viewport = builder.object("main_view").expect("Couldn't get view stack");
-    let timer_view: gtk::Viewport = builder.object("rubikronometer_view").expect("Couldn't get view stack");
+fn open_menu(builder: &Builder) {
+    let menu_view: gtk::Viewport = builder
+        .object("menu_view")
+        .expect("Couldn't get view stack");
+    let main_view: gtk::Viewport = builder
+        .object("main_view")
+        .expect("Couldn't get view stack");
+    let timer_view: gtk::Viewport = builder
+        .object("rubikronometer_view")
+        .expect("Couldn't get view stack");
     menu_view.set_visible(true);
     main_view.set_visible(false);
     timer_view.set_visible(false);
 }
 
-
-
-
 fn main() {
-    let app = Application::new(
-        Some("com.rubiks3000.app"),
-        Default::default(),
-    );
+    let app = Application::new(Some("com.rubiks3000.app"), Default::default());
 
     /*app.connect_startup(|app| {
         // The CSS "magic" happens here.
@@ -144,32 +158,37 @@ fn main() {
 
     app.connect_activate(|app| {
         // Création de la fenêtre de menu
-        let builder = gtk::Builder::from_file("/mnt/c/Users/artbo/rubiks-2000/ui/ui.glade");
-        let window : gtk::Window = builder.object("main_window").expect("Non");
+        let builder = Rc::new(gtk::Builder::from_file(
+            "../ui.glade",
+        ));
 
+        let window: gtk::Window = builder.object("main_window").expect("Non");
 
-        //Menu buttons 
-        let quit_button:gtk::Button = builder.object("quit_button").expect("Pas bouton");
+        //Menu buttons
+        let quit_button: gtk::Button = builder.object("quit_button").expect("Pas bouton");
         quit_button.connect_clicked(|_| {
             gtk::main_quit();
         });
 
-        let timer_button:gtk::Button = builder.object("timer_button").expect("Pas bouton");
-        timer_button.connect_clicked( move |_| {
-            open_timer(&builder);
+        let timer_button: gtk::Button = builder.object("timer_button").expect("Pas bouton");
+
+        let build_clone = builder.clone();
+        timer_button.connect_clicked(move |_| {
+            open_timer(build_clone.as_ref());
         });
 
-        let main_button:gtk::Button = builder.object("solver_button").expect("Pas bouton");
-        main_button.connect_clicked( move |_| {
-            open_main(&builder);
+        let build_clone = builder.clone();
+        let main_button: gtk::Button = builder.object("solver_button").expect("Pas bouton");
+        main_button.connect_clicked(move |_| {
+            open_main(build_clone.as_ref());
         });
 
+        let build_clone = builder.clone();
         //main buttons
-        let menu_button:gtk::Button = builder.object("menu_button").expect("Pas bouton");
-        main_button.connect_clicked( move |_| {
-            open_menu(&builder);
+        let menu_button: gtk::Button = builder.object("menu_button").expect("Pas bouton");
+        menu_button.connect_clicked(move |_| {
+            open_menu(build_clone.as_ref());
         });
-
 
         window.set_application(Some(app));
         window.show_all();
@@ -177,5 +196,3 @@ fn main() {
 
     app.run();
 }
-
-
