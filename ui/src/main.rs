@@ -159,7 +159,7 @@ fn main() {
     app.connect_activate(|app| {
         // Création de la fenêtre de menu
         let builder = Rc::new(gtk::Builder::from_file(
-            "../ui.glade",
+            "/mnt/c/Users/artbo/rubiks-2000/ui/ui.glade",
         ));
 
         let window: gtk::Window = builder.object("main_window").expect("Non");
@@ -189,6 +189,33 @@ fn main() {
         menu_button.connect_clicked(move |_| {
             open_menu(build_clone.as_ref());
         });
+
+        //timer buttons
+        let build_clone = builder.clone();
+        let menu_button2: gtk::Button = builder.object("menu_button2").expect("Pas bouton");
+        menu_button2.connect_clicked(move |_| {
+            open_menu(build_clone.as_ref());
+            print!("oui\n")
+        });
+
+        let start_button: gtk::Button = builder.object("start_button").expect("Pas bouton");
+        let stop_button: gtk::Button = builder.object("stop_button").expect("Pas bouton");
+        let label :gtk::Label = builder.object("timer").expect("pas de label");
+        let chronometer = Rc::new(RefCell::new(Chronometer::new()));
+        let chronometer_clone = Rc::clone(&chronometer);
+
+        start_button.connect_clicked(move |_| {
+            chronometer_clone.borrow_mut().start();
+        });
+        let label_clone = label.clone();
+        let chronometer_clone = Rc::clone(&chronometer);
+        stop_button.connect_clicked(move |_| {
+            let elapsed_time = chronometer_clone.borrow().elapsed();
+            println!("Temps écoulé: {:.2} secondes", elapsed_time);
+            label_clone.set_text(&format!(" {:.2} s", elapsed_time));
+        });
+
+
 
         window.set_application(Some(app));
         window.show_all();
