@@ -374,7 +374,7 @@
                     <property name="yscale">0.30000001192092896</property>
                     <child>
                       <object class="GtkButton" id="start_button">
-                        <property name="label" translatable="yes">Start</property>
+                        <property name="label" translatable="yes">Start / Stop</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -385,27 +385,6 @@
                     <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">2</property>
-                  </packing>
-                </child>
-                <child>
-                  <object class="GtkAlignment">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="xscale">0.8000000119209289</property>
-                    <property name="yscale">0.30000001192092896</property>
-                    <child>
-                      <object class="GtkButton" id="stop_button">
-                        <property name="label" translatable="yes">Stop</property>
-                        <property name="visible">True</property>
-                        <property name="can-focus">True</property>
-                        <property name="receives-default">True</property>
-                      </object>
-                    </child>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">3</property>
                   </packing>
                 </child>
               </object>
