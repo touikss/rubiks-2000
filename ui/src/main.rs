@@ -2,7 +2,12 @@ extern crate gtk;
 extern crate kiss3d;
 extern crate nalgebra as na;
 
-use gtk::{gdk_pixbuf, prelude::*, Builder, Button, CssProvider, StyleContext};
+use gtk::{
+    gdk::{self, RGBA},
+    gdk_pixbuf,
+    prelude::*,
+    Builder, Button, ColorButton, CssProvider, StyleContext,
+};
 use rscam::Config;
 use std::cell::RefCell;
 use std::env;
@@ -40,8 +45,18 @@ fn show_view(builder: &Builder, view: &str) {
     }
 }
 
+fn remove_css_class(button: &Button) {
+    // remove other class style
+    for c in ColorType::iter() {
+        button
+            .style_context()
+            .remove_class(&(c.to_string() + &String::from("-button")));
+    }
+}
+
 // Open the camera view
 fn open_camera(builder: &Builder) {
+    // Show view
     show_view(builder, CAMERA_ID);
 
     // Open camera
@@ -55,13 +70,36 @@ fn open_camera(builder: &Builder) {
         })
         .unwrap();
 
+    // Get image
     let image: gtk::Image = builder
         .object("camera_image")
         .expect("no camera image found");
 
+    // bool for ok button
+    let is_next_pressed = Rc::new(RefCell::new(0));
+    let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+
+    // ok callback
+    let camera_next_button: gtk::Button = builder
+        .object("camera_next_button")
+        .expect("no d button found");
+
+    let camera_next_button_ref = camera_next_button.clone();
+    camera_next_button.connect_clicked(move |_| {
+        *is_next_pressed_clone.borrow_mut() += 1;
+        *is_next_pressed_clone.borrow_mut() %= 3;
+        if *is_next_pressed_clone.borrow_mut() == 2 {
+            camera_next_button_ref.set_label("Capture");
+        } else {
+            camera_next_button_ref.set_label("Ok");
+        }
+    });
+
+    // bool for back button
     let is_back_pressed = Rc::new(RefCell::new(false));
     let is_back_pressed_clone = Rc::clone(&is_back_pressed);
 
+    // back callback
     let camera_back_button: gtk::Button = builder
         .object("camera_back_button")
         .expect("no d button found");
@@ -69,10 +107,90 @@ fn open_camera(builder: &Builder) {
         *is_back_pressed_clone.borrow_mut() = true;
     });
 
-    let button_grid: gtk::Grid = builder
-        .object("camera_button_grid")
+    // Display grid
+    let display_grid: gtk::Grid = builder
+        .object("camera_display_grid")
         .expect("no button grid found");
 
+    // Selection grid
+    let selection_grid: gtk::Grid = builder
+        .object("camera_selection_grid")
+        .expect("no button grid found");
+    selection_grid.set_visible(false);
+
+    // the selected button the user wants to modify
+    let selected_button: Rc<RefCell<Option<Button>>> = Rc::new(RefCell::new(None));
+
+    // load css provider
+    let css_provider = CssProvider::new();
+    css_provider
+        .load_from_path("src/style.css")
+        .expect("Failed to load CSS");
+
+    // init buttons
+    for i in 0..3 {
+        for j in 0..3 {
+            let button = Rc::new(RefCell::new(
+                display_grid
+                    .child_at(i as i32, j as i32)
+                    .expect("nop")
+                    .downcast::<Button>()
+                    .unwrap(),
+            ));
+
+            // init css
+            let style_context = button.borrow_mut().style_context();
+            style_context.add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+            // add callback for display buttons
+            let button_clone = button.clone();
+            let selection_grid_clone = selection_grid.clone();
+            let selected_button_clone = Rc::clone(&selected_button);
+            button.borrow_mut().connect_clicked(move |_| {
+                // show selection grid
+                selection_grid_clone.set_visible(true);
+                // change color
+                let button = button_clone.borrow_mut();
+                button.style_context().add_class("Empty-button");
+                // change selected button
+                let selected_button_clone = Rc::clone(&selected_button_clone);
+                *selected_button_clone.borrow_mut() = Some(button.clone());
+            });
+
+            // init selection buttons
+            if let Some(color) = ColorType::iter().nth((i * 3 + j) as usize) {
+                let select_button: Button = selection_grid
+                    .child_at(i as i32, j as i32)
+                    .expect("pas assez de boutton pour select")
+                    .downcast::<Button>()
+                    .unwrap();
+
+                let selected_button_clone = Rc::clone(&selected_button);
+                let selection_grid_clone = selection_grid.clone();
+                select_button.connect_clicked(move |_| {
+                    // hide selection grid
+                    selection_grid_clone.set_visible(false);
+                    let selected_button_clone = Rc::clone(&selected_button_clone);
+                    remove_css_class(&selected_button_clone.borrow_mut().as_ref().unwrap());
+                    selected_button_clone
+                        .borrow_mut()
+                        .as_ref()
+                        .unwrap()
+                        .style_context()
+                        .add_class(&(color.to_string() + &String::from("-button")));
+                });
+
+                let style_context = select_button.style_context();
+                style_context.add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+                select_button
+                    .style_context()
+                    .add_class(&(color.to_string() + &String::from("-button")));
+            }
+        }
+    }
+
+    // squares dim
     let length = 20;
     let margin = 70;
     let delta = margin + length;
@@ -80,87 +198,114 @@ fn open_camera(builder: &Builder) {
     let start_x = (CAMERA_WIDTH as f32 / 2. - length as f32 * 3. / 2. - margin as f32) as u32;
     let start_y = (CAMERA_HEIGHT as f32 / 2. - length as f32 * 3. / 2. - margin as f32) as u32;
 
-    let css_provider = CssProvider::new();
-    css_provider
-        .load_from_path("src/style.css")
-        .expect("Failed to load CSS");
-
-    for i in 0..3 {
-        for j in 0..3 {
-            let button: Button = button_grid
-                .child_at(i as i32, j as i32)
-                .expect("nop")
-                .downcast::<Button>()
-                .unwrap();
-
-            // Appliquer le CSS au contexte de style du bouton
-            let style_context = button.style_context();
-            style_context.add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
-        }
-    }
-
     // Start loop for capturing and displaying images
-    loop {
+    for _ in 0..6 {
+        // reset step
+        let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+        *is_next_pressed_clone.borrow_mut() = 0;
+
+        // first loop capturing the colors
+        loop {
+            // quit
+            let is_back_pressed_clone = Rc::clone(&is_back_pressed);
+            if *is_back_pressed_clone.borrow_mut() {
+                show_view(builder, SOLVER_ID);
+                camera.stop().unwrap();
+                break;
+            }
+
+            // break this loop and go next step
+            let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+            if *is_next_pressed_clone.borrow_mut() > 0 {
+                break;
+            }
+
+            // capture frame
+            let frame = camera.capture().unwrap();
+            let mut img = imagery::image::Image::new_frome_frame(&frame);
+
+            // draw green squares
+            for i in 0..3 {
+                for j in 0..3 {
+                    img.draw_square(start_x + i * delta, start_y + j * delta, length);
+                }
+            }
+
+            // compute and analyze with really complicated calculous which color it is
+            for i in 0..3 {
+                for j in 0..3 {
+                    // compute color
+                    let color =
+                        img.get_square_color(start_x + i * delta, start_y + j * delta, length);
+
+                    // get button
+                    let button: Button = display_grid
+                        .child_at(i as i32, j as i32)
+                        .unwrap()
+                        .downcast::<Button>()
+                        .unwrap();
+
+                    // remove other class style
+                    remove_css_class(&button);
+
+                    // change button color
+                    button
+                        .style_context()
+                        .add_class(&(color.to_string() + &String::from("-button")));
+                }
+            }
+
+            // convert into bytes the image and draw it in gtk
+            let glib_bytes = gtk::glib::Bytes::from(img.bytes());
+            let pixbuf = gdk_pixbuf::Pixbuf::from_bytes(
+                &glib_bytes,
+                gdk_pixbuf::Colorspace::Rgb,
+                false,
+                8,
+                img.width() as i32,
+                img.height() as i32,
+                img.width() as i32 * 3,
+            );
+            image.set_from_pixbuf(Some(&pixbuf));
+
+            // Process GTK events
+            while gtk::events_pending() {
+                gtk::main_iteration();
+            }
+        }
+
+        // quit
         let is_back_pressed_clone = Rc::clone(&is_back_pressed);
         if *is_back_pressed_clone.borrow_mut() {
-            show_view(builder, SOLVER_ID);
-            camera.stop().unwrap();
             break;
         }
 
-        let frame = camera.capture().unwrap();
+        // second loop allowing user to modify captured colors
+        loop {
+            // quit
+            let is_back_pressed_clone = Rc::clone(&is_back_pressed);
+            if *is_back_pressed_clone.borrow_mut() {
+                show_view(builder, SOLVER_ID);
+                camera.stop().unwrap();
+                break;
+            }
 
-        let mut img = imagery::image::Image::new_frome_frame(&frame);
+            // break this loop and go next step
+            let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+            if *is_next_pressed_clone.borrow_mut() > 1 {
+                break;
+            }
 
-        //img.apply_gray_filter();
-        //img.apply_blur(1);
-        //img.reduce();
-        //img.apply_mass_detection();
-
-        for i in 0..3 {
-            for j in 0..3 {
-                img.draw_square(start_x + i * delta, start_y + j * delta, length);
+            // Process GTK events
+            while gtk::events_pending() {
+                gtk::main_iteration();
             }
         }
 
-        for i in 0..3 {
-            for j in 0..3 {
-                let color = img.get_square_color(start_x + i * delta, start_y + j * delta, length);
-                let button: Button = button_grid
-                    .child_at(i as i32, j as i32)
-                    .unwrap()
-                    .downcast::<Button>()
-                    .unwrap();
-
-                for c in ColorType::iter() {
-                    button
-                    .style_context()
-                    .remove_class(&(c.to_string() + &String::from("-button")));
-                }
-
-                button
-                    .style_context()
-                    .add_class(&(color.to_string() + &String::from("-button")));
-            }
-        }
-
-        let glib_bytes = gtk::glib::Bytes::from(img.bytes());
-
-        let pixbuf = gdk_pixbuf::Pixbuf::from_bytes(
-            &glib_bytes,
-            gdk_pixbuf::Colorspace::Rgb,
-            false,
-            8,
-            img.width() as i32,
-            img.height() as i32,
-            img.width() as i32 * 3,
-        );
-
-        image.set_from_pixbuf(Some(&pixbuf));
-
-        // Process GTK events
-        while gtk::events_pending() {
-            gtk::main_iteration();
+        // quit
+        let is_back_pressed_clone = Rc::clone(&is_back_pressed);
+        if *is_back_pressed_clone.borrow_mut() {
+            break;
         }
     }
 }

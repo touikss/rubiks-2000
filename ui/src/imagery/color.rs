@@ -11,7 +11,7 @@ pub enum ColorType {
     Black,
     White,
     Orange,
-    Other,
+    Empty,
 }
 
 impl ColorType {
@@ -24,7 +24,7 @@ impl ColorType {
             ColorType::Black => BLACK,
             ColorType::White => WHITE,
             ColorType::Orange => ORANGE,
-            ColorType::Other => BLACK,
+            ColorType::Empty => BLACK,
         }
     }
 
@@ -84,7 +84,7 @@ impl Color {
 
     pub fn estimate_color(self) -> ColorType {
         let mut min_dist = 100.;
-        let mut res = ColorType::Other;
+        let mut res = ColorType::Empty;
 
         for color in ColorType::iter() {
             let curr_dist = self.distance(color.color());

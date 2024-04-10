@@ -34,6 +34,10 @@ window {
     min-height: 50px;
 }
 
+.Empty-button {
+    background-color: #717771;
+}
+
 .Red-button {
     background-color: #ea0d0d;
 }
