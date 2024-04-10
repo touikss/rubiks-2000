@@ -5,11 +5,11 @@ extern crate nalgebra as na;
 use gtk::{false_, gdk_pixbuf, prelude::*, Builder, Image};
 use gtk::{Application, ApplicationWindow, Box, Button, Label};
 use rscam::Config;
-use ui::imagery;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 use std::{env, thread};
+use ui::imagery;
 mod cube;
 mod graphic_cube;
 use std::sync::{Arc, Mutex};
@@ -136,7 +136,7 @@ fn show_view(builder: &Builder, view: &str) {
             gtk_view.set_visible(true);
         }
     }
-} 
+}
 
 // Open the menu view
 fn open_camera(builder: &Builder) {
@@ -153,19 +153,22 @@ fn open_camera(builder: &Builder) {
         })
         .unwrap();
 
-    let image: gtk::Image = builder.object("camera_image").expect("no camera image found");
+    let image: gtk::Image = builder
+        .object("camera_image")
+        .expect("no camera image found");
 
     let is_back_pressed = Rc::new(RefCell::new(false));
     let is_back_pressed_clone = Rc::clone(&is_back_pressed);
 
-    let camera_back_button: gtk::Button = builder.object("camera_back_button").expect("no d button found");
+    let camera_back_button: gtk::Button = builder
+        .object("camera_back_button")
+        .expect("no d button found");
     camera_back_button.connect_clicked(move |_| {
         *is_back_pressed_clone.borrow_mut() = true;
     });
 
     // Start loop for capturing and displaying images
     loop {
-
         let is_back_pressed_clone = Rc::clone(&is_back_pressed);
         if *is_back_pressed_clone.borrow_mut() {
             show_view(builder, SOLVER_ID);
@@ -193,7 +196,7 @@ fn open_camera(builder: &Builder) {
                 img.draw_square(start_x + i * delta, start_y + j * delta, length);
             }
         }
-        
+
         let glib_bytes = gtk::glib::Bytes::from(img.bytes());
 
         let pixbuf = gdk_pixbuf::Pixbuf::from_bytes(
@@ -213,8 +216,6 @@ fn open_camera(builder: &Builder) {
             gtk::main_iteration();
         }
     }
-
-
 }
 
 fn init_gtk_buttons(builder: &Builder) {
@@ -231,7 +232,8 @@ fn init_gtk_buttons(builder: &Builder) {
         .expect("No menu_timer_button found");
     let build_clone = builder.clone();
     menu_timer_button.connect_clicked(move |_| {
-        show_view(&build_clone, TIMER_ID);
+        open_timer(&build_clone);
+        //show_view(&build_clone, TIMER_ID);
     });
 
     let menu_solver_button: gtk::Button = builder
@@ -250,50 +252,78 @@ fn init_gtk_buttons(builder: &Builder) {
         show_view(&build_clone, MENU_ID);
     });
 
-    let main_camera_button: gtk::Button = builder.object("main_camera_button").expect("No main camera button found");
+    let main_camera_button: gtk::Button = builder
+        .object("main_camera_button")
+        .expect("No main camera button found");
     let build_clone = builder.clone();
     main_camera_button.connect_clicked(move |_| {
         open_camera(build_clone.as_ref());
     });
+}
 
-    // timer view buttons
-    let build_clone = builder.clone();
+fn open_timer(builder: &Builder) {
+    show_view(builder, TIMER_ID);
+
+    let timer_label: gtk::Label = builder.object("timer_label").expect("no timer label found");
+
+    // ptn c'est sale gtk
+    // switch button
+    let is_switch_pressed = Rc::new(RefCell::new(false));
+    let is_switch_pressed_clone = Rc::clone(&is_switch_pressed);
+
+    let timer_switch_button: gtk::Button = builder
+        .object("timer_switch_button")
+        .expect("no timer button found");
+    timer_switch_button.connect_clicked(move |_| {
+        let mut is_switch_pressed_clone = is_switch_pressed_clone.borrow_mut();
+        *is_switch_pressed_clone = !*is_switch_pressed_clone;
+    });
+
+    // back button
+    let is_back_pressed = Rc::new(RefCell::new(false));
+    let is_back_pressed_clone = Rc::clone(&is_back_pressed);
+
     let timer_back_button: gtk::Button = builder
         .object("timer_back_button")
-        .expect("No button found");
+        .expect("no timer back button found");
+    let build_clone = builder.clone();
     timer_back_button.connect_clicked(move |_| {
         show_view(&build_clone, MENU_ID);
+        *is_back_pressed_clone.borrow_mut() = true;
     });
 
-    let timer_start_button: gtk::Button = builder
-        .object("timer_start_button")
-        .expect("No button found");
-    let timer_label: gtk::Label = builder.object("timer_label").expect("pas de label");
-    let chronometer = Rc::new(RefCell::new(Chronometer::new()));
-    let chronometer_clone = Rc::clone(&chronometer);
-    let bol = RefCell::new(true);
+    let mut is_running = false;
+    let mut start_time = Instant::now();
 
-    let bol_clone = bol.clone();
-    let label_clone = timer_label.clone();
-    // Utiliser bol_clone à l'intérieur de la fermeture
-    timer_start_button.connect_clicked(move |_| {
-        if *bol_clone.borrow() {
-            chronometer_clone.borrow_mut().start();
-            *bol_clone.borrow_mut() = false;
-        } else {
-            let elapsed_time = chronometer_clone.borrow().elapsed();
-            println!("Temps écoulé: {:.2} secondes", elapsed_time);
-            label_clone.set_text(&format!(" {:.2} s", elapsed_time));
-            *bol_clone.borrow_mut() = true;
+    loop {
+
+        if is_running {
+            let elapsed_time = start_time.elapsed();
+            let seconds = elapsed_time.as_secs();
+            let millis = elapsed_time.subsec_millis();
+            let time_text = format!("{:02}:{:01}", seconds, millis);
+            timer_label.set_text(&time_text);
         }
-    });
 
-    // Camera buttons
-    let camera_back_button: gtk::Button = builder.object("camera_back_button").expect("No back camera button found");
-    let build_clone = builder.clone();
-    camera_back_button.connect_clicked(move |_| {
-        show_view(&build_clone, SOLVER_ID);
-    }); 
+        // quit la boucle si back pressed
+        let is_back_pressed_clone = Rc::clone(&is_back_pressed);
+        if *is_back_pressed_clone.borrow_mut() {
+            break;
+        }
+
+        let is_switch_pressed_clone = Rc::clone(&is_switch_pressed);
+        if *is_switch_pressed_clone.borrow_mut() {
+            if !is_running {
+                start_time = Instant::now();
+            }
+            is_running = !is_running;
+            *is_switch_pressed_clone.borrow_mut() = false;
+        }
+
+        while gtk::events_pending() {
+            gtk::main_iteration();
+        }
+    }
 }
 
 fn loop_3d(builder: &Builder) {
@@ -302,7 +332,7 @@ fn loop_3d(builder: &Builder) {
     window_3d.set_light(Light::StickToCamera);
 
     // z pr tourner de gauche à droite
-    // la cam regarde en direction du cube 
+    // la cam regarde en direction du cube
     let mut camera = FirstPerson::new(Point::new(-10., 10., -14.), Point::new(0., 0., 0.));
 
     let cube = Cube::new_filled(3);
@@ -415,7 +445,6 @@ fn loop_3d(builder: &Builder) {
 }
 
 fn main() {
-
     gtk::init().expect("Failed to initialize GTK.");
 
     // Take ui.glade path

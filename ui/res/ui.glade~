@@ -166,7 +166,7 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkButton">
+                              <object class="GtkButton" id="main_camera_button">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
@@ -373,7 +373,7 @@
                     <property name="xscale">0.8000000119209289</property>
                     <property name="yscale">0.30000001192092896</property>
                     <child>
-                      <object class="GtkButton" id="timer_start_button">
+                      <object class="GtkButton" id="timer_switch_button">
                         <property name="label" translatable="yes">Start / Stop</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
@@ -406,6 +406,19 @@
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
+                  <object class="GtkButton" id="camera_back_button">
+                    <property name="label" translatable="yes">Back</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
                   <object class="GtkImage" id="camera_image">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
@@ -414,7 +427,7 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">0</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
