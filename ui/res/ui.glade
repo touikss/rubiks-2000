@@ -48,7 +48,7 @@
                   <object class="GtkImage">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="pixbuf">src/Rubiks-Cube-PNG-Clipart (1).png</property>
+                    <property name="pixbuf">cube-1.webp</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -352,7 +352,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="timer">
+                  <object class="GtkLabel" id="timer_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="label" translatable="yes">Timer :</property>
@@ -373,7 +373,7 @@
                     <property name="xscale">0.8000000119209289</property>
                     <property name="yscale">0.30000001192092896</property>
                     <child>
-                      <object class="GtkButton" id="start_button">
+                      <object class="GtkButton" id="timer_start_button">
                         <property name="label" translatable="yes">Start / Stop</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>

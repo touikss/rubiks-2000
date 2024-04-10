@@ -12,11 +12,9 @@ struct Chronometer {
     last_pause_time: Option<Instant>,
 }
 
-
 const TIMER_ID: &str = "timer_view";
 const MENU_ID: &str = "menu_view";
 const SOLVER_ID: &str = "main_view";
-
 
 impl Chronometer {
     fn new() -> Chronometer {
@@ -104,15 +102,9 @@ fn rubikronometer() {
 
 // Open the main view
 fn open_main(builder: &Builder) {
-    let menu_view: gtk::Viewport = builder
-        .object(MENU_ID)
-        .expect("Couldn't get view stack");
-    let main_view: gtk::Viewport = builder
-        .object(SOLVER_ID)
-        .expect("Couldn't get view stack");
-    let timer_view: gtk::Viewport = builder
-        .object(TIMER_ID)
-        .expect("Couldn't get view stack");
+    let menu_view: gtk::Viewport = builder.object(MENU_ID).expect("Couldn't get view stack");
+    let main_view: gtk::Viewport = builder.object(SOLVER_ID).expect("Couldn't get view stack");
+    let timer_view: gtk::Viewport = builder.object(TIMER_ID).expect("Couldn't get view stack");
     menu_view.set_visible(false);
     main_view.set_visible(true);
     timer_view.set_visible(false);
@@ -120,15 +112,9 @@ fn open_main(builder: &Builder) {
 
 // Open the timer view
 fn open_timer(builder: &Builder) {
-    let menu_view: gtk::Viewport = builder
-        .object(MENU_ID)
-        .expect("Couldn't get view stack");
-    let main_view: gtk::Viewport = builder
-        .object(SOLVER_ID)
-        .expect("Couldn't get view stack");
-    let timer_view: gtk::Viewport = builder
-        .object(TIMER_ID)
-        .expect("Couldn't get view stack");
+    let menu_view: gtk::Viewport = builder.object(MENU_ID).expect("Couldn't get view stack");
+    let main_view: gtk::Viewport = builder.object(SOLVER_ID).expect("Couldn't get view stack");
+    let timer_view: gtk::Viewport = builder.object(TIMER_ID).expect("Couldn't get view stack");
     menu_view.set_visible(false);
     main_view.set_visible(false);
     timer_view.set_visible(true);
@@ -136,22 +122,95 @@ fn open_timer(builder: &Builder) {
 
 // Open the menu view
 fn open_menu(builder: &Builder) {
-    let menu_view: gtk::Viewport = builder
-        .object(MENU_ID)
-        .expect("Couldn't get view stack");
-    let main_view: gtk::Viewport = builder
-        .object(SOLVER_ID)
-        .expect("Couldn't get view stack");
-    let timer_view: gtk::Viewport = builder
-        .object(TIMER_ID)
-        .expect("Couldn't get view stack");
+    let menu_view: gtk::Viewport = builder.object(MENU_ID).expect("Couldn't get view stack");
+    let main_view: gtk::Viewport = builder.object(SOLVER_ID).expect("Couldn't get view stack");
+    let timer_view: gtk::Viewport = builder.object(TIMER_ID).expect("Couldn't get view stack");
     menu_view.set_visible(true);
     main_view.set_visible(false);
     timer_view.set_visible(false);
 }
 
+fn init_gtk(app: &Application) {
+    // Take ui.glade path
+    let glade_path = if let Ok(current_dir) = env::current_dir() {
+        if let Some(path_str) = current_dir.to_str() {
+            path_str.to_string() + "/res/ui.glade"
+        } else {
+            panic!("Unable to convert path in characters");
+        }
+    } else {
+        panic!("Unable to find current directory");
+    };
 
+    // Création de la fenêtre de menu
+    let builder = Rc::new(gtk::Builder::from_file(glade_path));
 
+    // Get window
+    let window: gtk::Window = builder.object("main_window").expect("No window found");
+
+    // Menu buttons
+    let menu_quit_button: gtk::Button = builder
+        .object("menu_quit_button")
+        .expect("No menu_quit_button found");
+    menu_quit_button.connect_clicked(|_| {
+        gtk::main_quit();
+    });
+
+    let menu_timer_button: gtk::Button = builder
+        .object("menu_timer_button")
+        .expect("No menu_timer_button found");
+    let build_clone = builder.clone();
+    menu_timer_button.connect_clicked(move |_| {
+        open_timer(build_clone.as_ref());
+    });
+
+    let menu_solver_button: gtk::Button = builder
+        .object("menu_solver_button")
+        .expect("No menu_solver_button found");
+    let build_clone = builder.clone();
+    menu_solver_button.connect_clicked(move |_| {
+        open_main(build_clone.as_ref());
+    });
+
+    let build_clone = builder.clone();
+    let main_back_button: gtk::Button = builder.object("main_back_button").expect("No button found");
+    main_back_button.connect_clicked(move |_| {
+        open_menu(build_clone.as_ref());
+    });
+
+    //timer buttons
+    let build_clone = builder.clone();
+    let timer_back_button: gtk::Button = builder
+        .object("timer_back_button")
+        .expect("No button found");
+    timer_back_button.connect_clicked(move |_| {
+        open_menu(build_clone.as_ref());
+    });
+
+    let timer_start_button: gtk::Button = builder.object("timer_start_button").expect("No button found");
+    let timer_label: gtk::Label = builder.object("timer_label").expect("pas de label");
+    let chronometer = Rc::new(RefCell::new(Chronometer::new()));
+    let chronometer_clone = Rc::clone(&chronometer);
+    let bol = RefCell::new(true);
+
+    let bol_clone = bol.clone();
+    let label_clone = timer_label.clone();
+    // Utiliser bol_clone à l'intérieur de la fermeture
+    timer_start_button.connect_clicked(move |_| {
+        if *bol_clone.borrow() {
+            chronometer_clone.borrow_mut().start();
+            *bol_clone.borrow_mut() = false;
+        } else {
+            let elapsed_time = chronometer_clone.borrow().elapsed();
+            println!("Temps écoulé: {:.2} secondes", elapsed_time);
+            label_clone.set_text(&format!(" {:.2} s", elapsed_time));
+            *bol_clone.borrow_mut() = true;
+        }
+    });
+
+    window.set_application(Some(app));
+    window.show_all();
+}
 
 fn main() {
     let app = Application::new(Some("com.rubiks3000.app"), Default::default());
@@ -170,81 +229,7 @@ fn main() {
     });*/
 
     app.connect_activate(|app| {
-        
-        // Récupère le path du builder
-        let glade_path = if let Ok(current_dir) = env::current_dir() {
-            if let Some(path_str) = current_dir.to_str() {
-                path_str.to_string() + "/res/ui.glade"
-            } else {
-                panic!("Unable to convert path in characters");
-            }
-        } else {
-            panic!("Unable to find current directory");
-        };
-
-        // Création de la fenêtre de menu
-        let builder = Rc::new(gtk::Builder::from_file(
-            glade_path,
-        ));
-
-        // Get window
-        let window: gtk::Window = builder.object("main_window").expect("No window found");
-
-        //Menu buttons
-        let menu_quit_button: gtk::Button = builder.object("menu_quit_button").expect("No menu_quit_button found");
-        menu_quit_button.connect_clicked(|_| {
-            gtk::main_quit();
-        });
-
-        let menu_timer_button: gtk::Button = builder.object("menu_timer_button").expect("No menu_timer_button found");
-
-        let build_clone = builder.clone();
-        menu_timer_button.connect_clicked(move |_| {
-            open_timer(build_clone.as_ref());
-        });
-
-        let build_clone = builder.clone();
-        let menu_solver_button: gtk::Button = builder.object("menu_solver_button").expect("No menu_solver_button found");
-        menu_solver_button.connect_clicked(move |_| {
-            open_main(build_clone.as_ref());
-        });
-
-        let build_clone = builder.clone();
-        let menu_button: gtk::Button = builder.object("main_back_button").expect("No button found");
-        menu_button.connect_clicked(move |_| {
-            open_menu(build_clone.as_ref());
-        });
-
-        //timer buttons
-        let build_clone = builder.clone();
-        let menu_button2: gtk::Button = builder.object("timer_back_button").expect("No button found");
-        menu_button2.connect_clicked(move |_| {
-            open_menu(build_clone.as_ref());
-        });
-
-        let start_button: gtk::Button = builder.object("start_button").expect("No button found");
-        let label: gtk::Label = builder.object("timer").expect("pas de label");
-        let chronometer = Rc::new(RefCell::new(Chronometer::new()));
-        let chronometer_clone = Rc::clone(&chronometer);
-        let bol = RefCell::new(true);
-
-        let bol_clone = bol.clone();
-        let label_clone = label.clone();
-        // Utiliser bol_clone à l'intérieur de la fermeture
-        start_button.connect_clicked(move |_| {
-            if *bol_clone.borrow() {
-                chronometer_clone.borrow_mut().start();
-                *bol_clone.borrow_mut() = false;
-            } else {
-                let elapsed_time = chronometer_clone.borrow().elapsed();
-                println!("Temps écoulé: {:.2} secondes", elapsed_time);
-                label_clone.set_text(&format!(" {:.2} s", elapsed_time));
-                *bol_clone.borrow_mut() = true;
-            }
-        });
-
-        window.set_application(Some(app));
-        window.show_all();
+        init_gtk(app);
     });
 
     app.run();
