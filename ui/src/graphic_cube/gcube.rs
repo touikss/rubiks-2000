@@ -7,18 +7,20 @@ use std::{
 };
 
 use crate::cube::cube::Cube;
-use gtk::prelude::ImageExt;
+use gtk::{cairo::ffi::STATUS_INVALID_DASH, prelude::ImageExt};
 use kiss3d::{
-    camera::Camera, nalgebra::{Isometry3, Translation3, UnitQuaternion}, scene::SceneNode, window::Window
+    camera::Camera,
+    nalgebra::{Isometry3, Translation3, UnitQuaternion},
+    scene::SceneNode,
+    window::Window,
 };
 use rand::Rng;
 
 use super::gtk_binding::*;
 
-
 const SIZE: f32 = 1.0;
 const OFFSET: f32 = 0.2;
-const ANIMATION_TIME: f32 = 2.0;
+const ANIMATION_TIME: f32 = 0.5;
 
 #[derive(PartialEq)]
 pub enum Move {
@@ -139,40 +141,26 @@ impl Gcube {
     ///
     pub fn new(_cube: Cube, window: &mut Window) -> Self {
         let mut _node = window.add_group();
-        let s = (_cube.get_size() as i32) / 2;
+        let s = 1;
         let mut _cublets = Vec::new();
-        let pair = (_cube.get_size() as i32) % 2 == 0;
 
         for i in -s..=s {
-            if i == 0 && pair {
-                continue;
-            }
             let fx = i as f32;
             for j in -s..=s {
-                if j == 0 && pair {
-                    continue;
-                }
                 let fy = j as f32;
                 for k in -s..=s {
-                    if k == 0 && pair {
-                        continue;
-                    }
                     let fz = k as f32;
                     let mut cublet = Cublet::new();
-                    let translation = if !pair {
-                        Isometry3::translation(fx * OFFSET + fx, fy * OFFSET + fy, fz * OFFSET + fz)
-                    } else {
-                        Isometry3::translation(
-                            (fx - fx.signum() * 0.5) * OFFSET + (fx - fx.signum() * 0.5),
-                            (fy - fy.signum() * 0.5) * OFFSET + (fy - fy.signum() * 0.5),
-                            (fz - fz.signum() * 0.5) * OFFSET + (fz - fz.signum() * 0.5),
-                        )
-                    };
+                    let translation = Isometry3::translation(
+                        fx * OFFSET + fx,
+                        fy * OFFSET + fy,
+                        fz * OFFSET + fz,
+                    );
                     cublet.node.set_local_transformation(translation);
                     cublet.set_position(
-                        (i + s - (pair && i > 0) as i32) as usize,
-                        (j + s - (pair && j > 0) as i32) as usize,
-                        (k + s - (pair && k > 0) as i32) as usize,
+                        (i + s) as usize,
+                        (j + s) as usize,
+                        (k + s) as usize,
                     );
                     if k == s {
                         cublet.back_face.set_color(1.0, 1.0, 0.0);
@@ -226,10 +214,10 @@ impl Gcube {
     }
 
     fn adjust_cublet_positions(&mut self) {
-        let precision = 0.1;
+        let precision = 0.5;
         for i in 0..self.cublets.len() {
             let cublet = self.cublets[i].borrow_mut();
-            let x = cublet.node.data().local_transformation().translation.x;
+            /*let x = cublet.node.data().local_transformation().translation.x;
             let y = cublet.node.data().local_transformation().translation.y;
             let z = cublet.node.data().local_transformation().translation.z;
             let translation = Translation3::new(
@@ -237,8 +225,11 @@ impl Gcube {
                 (y / precision).round() * precision,
                 (z / precision).round() * precision,
             );
-            cublet.node.set_local_translation(translation);
+            cublet.node.set_local_translation(translation);*/
         }
+
+        let pos_adjusted = self.cublets[0].node.data().local_transformation();
+        dbg!(pos_adjusted);
     }
 
     /// This function make the graphic cube execute move with animation
@@ -256,8 +247,12 @@ impl Gcube {
         mov: Move,
         n: usize,
         gtk_image: &mut gtk::Image,
-        camera: &mut dyn Camera
+        camera: &mut dyn Camera,
     ) {
+
+        let pos = self.cublets[0].node.data().local_transformation();
+        dbg!(pos);
+
         let animation_duration = Duration::from_secs_f32(ANIMATION_TIME);
         let start_time = Instant::now();
         let mut prev = 0.0;
@@ -314,7 +309,6 @@ impl Gcube {
 
         // Animation loop
         while window.render_with_camera(camera) {
-
             update_gtk_image(window, gtk_image);
 
             let elapsed_time = start_time.elapsed();
@@ -360,6 +354,9 @@ impl Gcube {
                 }
             }
         }
+
+        let pos = self.cublets[0].node.data().local_transformation();
+        dbg!(pos);
     }
 
     /// This function will highlight the xth vertical stripe of the cube

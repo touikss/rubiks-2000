@@ -45,7 +45,7 @@
                 <property name="orientation">vertical</property>
                 <property name="homogeneous">True</property>
                 <child>
-                  <object class="GtkImage">
+                  <object class="GtkImage" id="menu_image">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="pixbuf">cube-1.webp</property>
@@ -225,8 +225,8 @@
                     <property name="can-focus">False</property>
                     <property name="homogeneous">True</property>
                     <child>
-                      <object class="GtkButton">
-                        <property name="label" translatable="yes">button</property>
+                      <object class="GtkButton" id="main_f_button">
+                        <property name="label" translatable="yes">Front</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -238,8 +238,8 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton">
-                        <property name="label" translatable="yes">button</property>
+                      <object class="GtkButton" id="main_b_button">
+                        <property name="label" translatable="yes">Back</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -251,8 +251,8 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton">
-                        <property name="label" translatable="yes">button</property>
+                      <object class="GtkButton" id="main_l_button">
+                        <property name="label" translatable="yes">Left</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -264,8 +264,8 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton">
-                        <property name="label" translatable="yes">button</property>
+                      <object class="GtkButton" id="main_r_button">
+                        <property name="label" translatable="yes">Right</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -277,8 +277,8 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton">
-                        <property name="label" translatable="yes">button</property>
+                      <object class="GtkButton" id="main_u_button">
+                        <property name="label" translatable="yes">Up</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -290,8 +290,8 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkButton">
-                        <property name="label" translatable="yes">button</property>
+                      <object class="GtkButton" id="main_d_button">
+                        <property name="label" translatable="yes">Down</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -394,6 +394,39 @@
             <property name="name">page2</property>
             <property name="title" translatable="yes">page2</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkViewport" id="camera_view">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkImage" id="camera_image">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="stock">gtk-missing-image</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="name">page3</property>
+            <property name="title" translatable="yes">page3</property>
+            <property name="position">3</property>
           </packing>
         </child>
       </object>
