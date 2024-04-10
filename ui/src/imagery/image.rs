@@ -1,11 +1,11 @@
 use crate::imagery::{
-    color, shape,
+    color::{self, ColorType}, shape,
     utils::{round, GREEN, ORANGE, RED, WHITE, YELLOW},
 };
 
 use super::{color::Color, shape::*, utils::*};
 
-use gtk::{ffi::GTK_CALENDAR_NO_MONTH_CHANGE, gdk::shows_events};
+use gtk::{ffi::GTK_CALENDAR_NO_MONTH_CHANGE, gdk::{keys::constants::Yellow, shows_events}};
 use rand::Rng;
 
 use std::collections::HashMap;
@@ -66,6 +66,7 @@ impl Image {
             }
         }
     }
+
 
     // Apply a gray filter to the image
     pub fn apply_gray_filter(&mut self) {
@@ -246,66 +247,54 @@ impl Image {
 
     // Draw a line on the image
     pub fn draw_line(&mut self, x1: u32, y1: u32, x2: u32, y2: u32) {
-        // Vérifier si les coordonnées sont dans les limites de l'image
+       
         if x1 >= self.width || y1 >= self.height || x2 >= self.width || y2 >= self.height {
             panic!("Coordonnées en dehors des limites de l'self");
         }
 
-        // Convertir les coordonnées (x, y) en index dans le vecteur image
         let index = |x: u32, y: u32| (y * self.width * 3) + (x * 3);
 
-        // Déterminer les deltas pour x et y
         let dx = (x2 as isize) - (x1 as isize);
         let dy = (y2 as isize) - (y1 as isize);
 
-        // Déterminer si la pente est raide ou peu raide
+      
         let steep = dy.abs() > dx.abs();
 
-        // Si la pente est raide, échanger x et y
+      
         let (mut x, mut y, dx, dy) = if steep {
             (y1 as isize, x1 as isize, dy, dx)
         } else {
             (x1 as isize, y1 as isize, dx, dy)
         };
 
-        // Déterminer l'incrémentation pour x et y
+       
         let increment_x = if dx < 0 { -1 } else { 1 };
         let increment_y = if dy < 0 { -1 } else { 1 };
 
-        // Convertir les deltas en valeurs absolues
         let dx = dx.abs();
         let dy = dy.abs();
 
-        // Déterminer les étapes maximales
         let max_steps = if dx > dy { dx } else { dy };
 
-        // Calculer l'erreur initiale
         let mut error = max_steps / 2;
 
-        // Dessiner la ligne pixel par pixel
         for _ in 0..=max_steps {
-            // Calculer l'index du pixel dans le vecteur image
             let pixel_index = if steep {
                 index(y as u32, x as u32) as usize
             } else {
                 index(x as u32, y as u32) as usize
             };
 
-            // Dessiner le pixel de couleur verte (RGB: 0, 255, 0)
             self.bytes[pixel_index] = 0; // Rouge
             self.bytes[pixel_index + 1] = 255; // Vert
             self.bytes[pixel_index + 2] = 0; // Bleu
 
-            // Mise à jour de l'erreur
             error -= dy;
 
-            // Si l'erreur est négative, avancer dans la direction y et ajouter à l'erreur
             if error < 0 {
                 y += increment_y;
                 error += dx;
             }
-
-            // Avancer dans la direction x
             x += increment_x;
         }
     }
@@ -318,9 +307,9 @@ impl Image {
         self.draw_line(x, y + length, x + length, y + length);
     }
 
-    /*pub fn get_pixel_color(&self, x: u32, y: u32, length: u32) {
+    pub fn get_square_color(&self, x: u32, y: u32, length: u32) -> ColorType {
         // Vérifier si les coordonnées sont dans les limites de l'image
-        if x >= *self.width() || y >= self.height() {
+        if x >= self.width() || y >= self.height() {
             panic!("Coordonnées en dehors des limites de l'self");
         }
 
@@ -354,37 +343,37 @@ impl Image {
         g /= (length * length) as f64;
         b /= (length * length) as f64;
 
-        let color = (r as u32, g as u32, b as u32);
+        let color = Color::new(r as u8, g as u8, b as u8);
 
         //println!("r : {}, g : {}, b : {}", r, g, b);
 
-        //let mut color_dist = vec![];
+        let mut color_dist = vec![];
 
-        /*color_dist.push(color_distance(color, BLUE));
-        color_dist.push(color_distance(color, YELLOW));
-        color_dist.push(color_distance(color, RED));
-        color_dist.push(color_distance(color, BLACK));
-        color_dist.push(color_distance(color, ORANGE));
-        color_dist.push(color_distance(color, GREEN));*/
+        color_dist.push(color.distance(BLUE));
+        color_dist.push(color.distance(YELLOW));
+        color_dist.push(color.distance(RED));
+        color_dist.push(color.distance(BLACK));
+        color_dist.push(color.distance(ORANGE));
+        color_dist.push(color.distance(GREEN));
 
-        /*let (index, _min_value) = color_dist
+        let (index, _min_value) = color_dist
             .iter()
             .enumerate()
             .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
             .unwrap();
 
-        let s = match index {
-            0 => "BLUE",
-            1 => "YELLOW",
-            2 => "RED",
-            3 => "BLACK",
-            4 => "ORANGE",
-            5 => "GREEN",
-            _ => "NOP",
-        };*/
+        let color_type = match index {
+            0 => ColorType::Blue,
+            1 => ColorType::Yellow,
+            2 => ColorType::Red,
+            3 => ColorType::Black,
+            4 => ColorType::Orange,
+            5 => ColorType::Green,
+            _ => ColorType::White,
+        };
 
-        //dbg!(s);
-    }*/
+        color_type
+    }
 }
 
 pub struct ImageIterator<'a> {

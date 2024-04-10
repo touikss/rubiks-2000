@@ -33,3 +33,33 @@ window {
     min-width: 100px;
     min-height: 50px;
 }
+
+.Red-button {
+    background-color: #ea0d0d;
+}
+
+.Black-button {
+    background-color: #151313;
+}
+
+.Blue-button {
+    background-color: #3117d6;
+}
+
+.Green-button {
+    background-color: #246d1c;
+}
+
+.Yellow-button {
+    background-color: #d9e31b;
+}
+
+.Orange-button {
+    background-color: #f16e22;
+}
+
+.White-button {
+    background-color: #dce6db;
+}
+
+

@@ -2,17 +2,15 @@ extern crate gtk;
 extern crate kiss3d;
 extern crate nalgebra as na;
 
-use gtk::{false_, gdk_pixbuf, prelude::*, Builder, Image};
-use gtk::{Application, ApplicationWindow, Box, Button, Label};
+use gtk::{gdk_pixbuf, prelude::*, Builder, Button, CssProvider, StyleContext};
 use rscam::Config;
 use std::cell::RefCell;
+use std::env;
 use std::rc::Rc;
-use std::time::{Duration, Instant};
-use std::{env, thread};
-use ui::imagery;
+use std::time::Instant;
+use ui::imagery::{self, color::ColorType};
 mod cube;
 mod graphic_cube;
-use std::sync::{Arc, Mutex};
 
 use cube::cube::Cube;
 use graphic_cube::{
@@ -20,19 +18,7 @@ use graphic_cube::{
     gtk_binding::update_gtk_image,
 };
 
-use gtk::prelude::*;
-use kiss3d::{
-    camera::{Camera, FirstPerson},
-    light::Light,
-    ncollide3d::math::Point,
-    window::Window,
-};
-
-struct Chronometer {
-    start_time: Option<Instant>,
-    total_paused_time: Duration,
-    last_pause_time: Option<Instant>,
-}
+use kiss3d::{camera::FirstPerson, light::Light, ncollide3d::math::Point, window::Window};
 
 const TIMER_ID: &str = "timer_view";
 const MENU_ID: &str = "menu_view";
@@ -42,90 +28,6 @@ const VIEWS_ID: [&str; 4] = [TIMER_ID, MENU_ID, SOLVER_ID, CAMERA_ID];
 
 const CAMERA_WIDTH: u32 = 640;
 const CAMERA_HEIGHT: u32 = 480;
-
-impl Chronometer {
-    fn new() -> Chronometer {
-        Chronometer {
-            start_time: None,
-            total_paused_time: Duration::new(0, 0),
-            last_pause_time: None,
-        }
-    }
-
-    fn start(&mut self) {
-        self.start_time = Some(Instant::now());
-    }
-
-    fn pause(&mut self) {
-        if let Some(start) = self.start_time {
-            self.last_pause_time = Some(Instant::now());
-            self.total_paused_time += self.last_pause_time.unwrap() - start;
-        }
-    }
-
-    fn resume(&mut self) {
-        if let Some(pause_time) = self.last_pause_time {
-            self.total_paused_time -= pause_time.elapsed();
-        }
-        self.start_time = Some(Instant::now());
-        self.last_pause_time = None;
-    }
-
-    fn reset(&mut self) {
-        self.start_time = None;
-        self.total_paused_time = Duration::new(0, 0);
-        self.last_pause_time = None;
-    }
-
-    fn elapsed(&self) -> f64 {
-        match self.start_time {
-            Some(start) => {
-                let elapsed = start.elapsed() - self.total_paused_time;
-                elapsed.as_secs_f64()
-            }
-            None => 0.0,
-        }
-    }
-}
-
-fn rubikronometer() {
-    let window = gtk::Window::new(gtk::WindowType::Toplevel);
-    window.set_title("Rubik'ronometer");
-    window.set_default_size(300, 200);
-
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 2);
-    window.add(&vbox);
-
-    let label = gtk::Label::new(None);
-    vbox.pack_start(&label, true, true, 0);
-
-    let chronometer = Rc::new(RefCell::new(Chronometer::new()));
-
-    let start_button = gtk::Button::with_label("Start");
-    start_button.set_widget_name("start_button"); //css
-
-    let chronometer_clone = Rc::clone(&chronometer);
-    start_button.connect_clicked(move |_| {
-        chronometer_clone.borrow_mut().start();
-    });
-    vbox.pack_start(&start_button, false, false, 0);
-
-    let stop_button = gtk::Button::with_label("Stop");
-    stop_button.set_widget_name("stop_button"); //css
-    let label_clone = label.clone();
-    let chronometer_clone = Rc::clone(&chronometer);
-    stop_button.connect_clicked(move |_| {
-        let elapsed_time = chronometer_clone.borrow().elapsed();
-        println!("Temps écoulé: {:.2} secondes", elapsed_time);
-        label_clone.set_text(&format!(
-            "Rubik's effectué en : {:.2} secondes",
-            elapsed_time
-        ));
-    });
-    vbox.pack_start(&stop_button, false, false, 0);
-
-    window.show_all();
-}
 
 fn show_view(builder: &Builder, view: &str) {
     for v in VIEWS_ID {
@@ -138,7 +40,7 @@ fn show_view(builder: &Builder, view: &str) {
     }
 }
 
-// Open the menu view
+// Open the camera view
 fn open_camera(builder: &Builder) {
     show_view(builder, CAMERA_ID);
 
@@ -167,11 +69,42 @@ fn open_camera(builder: &Builder) {
         *is_back_pressed_clone.borrow_mut() = true;
     });
 
+    let button_grid: gtk::Grid = builder
+        .object("camera_button_grid")
+        .expect("no button grid found");
+
+    let length = 20;
+    let margin = 70;
+    let delta = margin + length;
+
+    let start_x = (CAMERA_WIDTH as f32 / 2. - length as f32 * 3. / 2. - margin as f32) as u32;
+    let start_y = (CAMERA_HEIGHT as f32 / 2. - length as f32 * 3. / 2. - margin as f32) as u32;
+
+    let css_provider = CssProvider::new();
+    css_provider
+        .load_from_path("src/style.css")
+        .expect("Failed to load CSS");
+
+    for i in 0..3 {
+        for j in 0..3 {
+            let button: Button = button_grid
+                .child_at(i as i32, j as i32)
+                .expect("nop")
+                .downcast::<Button>()
+                .unwrap();
+
+            // Appliquer le CSS au contexte de style du bouton
+            let style_context = button.style_context();
+            style_context.add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+        }
+    }
+
     // Start loop for capturing and displaying images
     loop {
         let is_back_pressed_clone = Rc::clone(&is_back_pressed);
         if *is_back_pressed_clone.borrow_mut() {
             show_view(builder, SOLVER_ID);
+            camera.stop().unwrap();
             break;
         }
 
@@ -179,21 +112,35 @@ fn open_camera(builder: &Builder) {
 
         let mut img = imagery::image::Image::new_frome_frame(&frame);
 
-        let length = 50;
-        let margin = 20;
-        let delta = margin + length;
-
-        let start_x = (CAMERA_WIDTH as f32 / 2. - length as f32 * 3. / 2. - margin as f32) as u32;
-        let start_y = (CAMERA_HEIGHT as f32 / 2. - length as f32 * 3. / 2. - margin as f32) as u32;
-
-        img.apply_gray_filter();
+        //img.apply_gray_filter();
         //img.apply_blur(1);
         //img.reduce();
-        img.apply_mass_detection();
+        //img.apply_mass_detection();
 
         for i in 0..3 {
             for j in 0..3 {
                 img.draw_square(start_x + i * delta, start_y + j * delta, length);
+            }
+        }
+
+        for i in 0..3 {
+            for j in 0..3 {
+                let color = img.get_square_color(start_x + i * delta, start_y + j * delta, length);
+                let button: Button = button_grid
+                    .child_at(i as i32, j as i32)
+                    .unwrap()
+                    .downcast::<Button>()
+                    .unwrap();
+
+                for c in ColorType::iter() {
+                    button
+                    .style_context()
+                    .remove_class(&(c.to_string() + &String::from("-button")));
+                }
+
+                button
+                    .style_context()
+                    .add_class(&(color.to_string() + &String::from("-button")));
             }
         }
 
@@ -261,6 +208,7 @@ fn init_gtk_buttons(builder: &Builder) {
     });
 }
 
+// open timer view
 fn open_timer(builder: &Builder) {
     show_view(builder, TIMER_ID);
 
@@ -296,12 +244,11 @@ fn open_timer(builder: &Builder) {
     let mut start_time = Instant::now();
 
     loop {
-
         if is_running {
             let elapsed_time = start_time.elapsed();
             let seconds = elapsed_time.as_secs();
             let millis = elapsed_time.subsec_millis();
-            let time_text = format!("{:02}:{:01}", seconds, millis);
+            let time_text = format!("{:02}:{:03}", seconds, millis);
             timer_label.set_text(&time_text);
         }
 
@@ -314,7 +261,10 @@ fn open_timer(builder: &Builder) {
         let is_switch_pressed_clone = Rc::clone(&is_switch_pressed);
         if *is_switch_pressed_clone.borrow_mut() {
             if !is_running {
+                timer_switch_button.set_label("Stop");
                 start_time = Instant::now();
+            } else {
+                timer_switch_button.set_label("Start");
             }
             is_running = !is_running;
             *is_switch_pressed_clone.borrow_mut() = false;
