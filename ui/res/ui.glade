@@ -45,7 +45,7 @@
                 <property name="orientation">vertical</property>
                 <property name="homogeneous">True</property>
                 <child>
-                  <object class="GtkImage">
+                  <object class="GtkImage" id="menu_image">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="pixbuf">cube-1.webp</property>
@@ -201,7 +201,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkImage">
+                      <object class="GtkImage" id="main_3d_image">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="stock">gtk-select-color</property>

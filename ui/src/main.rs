@@ -1,10 +1,30 @@
 extern crate gtk;
-use gtk::{false_, prelude::*, Builder};
+extern crate kiss3d;
+extern crate nalgebra as na;
+
+use gtk::{false_, prelude::*, Builder, Image};
 use gtk::{Application, ApplicationWindow, Box, Button, Label};
 use std::cell::RefCell;
-use std::env;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
+use std::{env, thread};
+mod cube;
+mod graphic_cube;
+use std::sync::{Arc, Mutex};
+
+use cube::cube::Cube;
+use graphic_cube::{
+    gcube::{Gcube, Move::*},
+    gtk_binding::update_gtk_image,
+};
+
+use gtk::prelude::*;
+use kiss3d::{
+    camera::{Camera, FirstPerson},
+    light::Light,
+    ncollide3d::math::Point,
+    window::Window,
+};
 
 struct Chronometer {
     start_time: Option<Instant>,
@@ -130,24 +150,7 @@ fn open_menu(builder: &Builder) {
     timer_view.set_visible(false);
 }
 
-fn init_gtk(app: &Application) {
-    // Take ui.glade path
-    let glade_path = if let Ok(current_dir) = env::current_dir() {
-        if let Some(path_str) = current_dir.to_str() {
-            path_str.to_string() + "/res/ui.glade"
-        } else {
-            panic!("Unable to convert path in characters");
-        }
-    } else {
-        panic!("Unable to find current directory");
-    };
-
-    // Création de la fenêtre de menu
-    let builder = Rc::new(gtk::Builder::from_file(glade_path));
-
-    // Get window
-    let window: gtk::Window = builder.object("main_window").expect("No window found");
-
+fn init_gtk_buttons(builder: &Builder) {
     // Menu buttons
     let menu_quit_button: gtk::Button = builder
         .object("menu_quit_button")
@@ -172,13 +175,15 @@ fn init_gtk(app: &Application) {
         open_main(build_clone.as_ref());
     });
 
+    // main view buttons
+    let main_back_button: gtk::Button =
+        builder.object("main_back_button").expect("No button found");
     let build_clone = builder.clone();
-    let main_back_button: gtk::Button = builder.object("main_back_button").expect("No button found");
     main_back_button.connect_clicked(move |_| {
         open_menu(build_clone.as_ref());
     });
 
-    //timer buttons
+    // timer view buttons
     let build_clone = builder.clone();
     let timer_back_button: gtk::Button = builder
         .object("timer_back_button")
@@ -187,7 +192,9 @@ fn init_gtk(app: &Application) {
         open_menu(build_clone.as_ref());
     });
 
-    let timer_start_button: gtk::Button = builder.object("timer_start_button").expect("No button found");
+    let timer_start_button: gtk::Button = builder
+        .object("timer_start_button")
+        .expect("No button found");
     let timer_label: gtk::Label = builder.object("timer_label").expect("pas de label");
     let chronometer = Rc::new(RefCell::new(Chronometer::new()));
     let chronometer_clone = Rc::clone(&chronometer);
@@ -207,13 +214,54 @@ fn init_gtk(app: &Application) {
             *bol_clone.borrow_mut() = true;
         }
     });
+}
+
+struct Renderer {}
+
+fn init_3d_render(builder: &Builder) {
+    let mut image: gtk::Image = builder.object("menu_image").expect("No 3d image found");
+    // create kiss3D view
+    let mut window = Window::new("Rubik's 2000");
+    window.set_light(Light::StickToCamera);
+
+    let mut camera = FirstPerson::new(Point::new(-10., 10., 6.), Point::new(0., 0., 0.));
+
+    let cube = Cube::new_filled(3);
+    let mut gcube = Gcube::new(cube, &mut window);
+
+    loop {
+        update_gtk_image(&mut window, &mut image);
+        gcube.apply_move(&mut window, H, 0, &mut image, &mut camera);
+    }
+}
+
+fn init_gtk(app: &Application) {
+    // Take ui.glade path
+    let glade_path = if let Ok(current_dir) = env::current_dir() {
+        if let Some(path_str) = current_dir.to_str() {
+            path_str.to_string() + "/res/ui.glade"
+        } else {
+            panic!("Unable to convert path in characters");
+        }
+    } else {
+        panic!("Unable to find current directory");
+    };
+
+    let builder = gtk::Builder::from_file(glade_path);
+
+    //init_3d_render(&builder);
+
+    // Initialiser les boutons GTK
+    init_gtk_buttons(&builder);
+    // Get window
+    let window: gtk::Window = builder.object("main_window").expect("No window found");
 
     window.set_application(Some(app));
     window.show_all();
 }
 
 fn main() {
-    let app = Application::new(Some("com.rubiks3000.app"), Default::default());
+    /*let app = Application::new(Some("com.rubiks3000.app"), Default::default());
 
     /*app.connect_startup(|app| {
         // The CSS "magic" happens here.
@@ -232,5 +280,74 @@ fn main() {
         init_gtk(app);
     });
 
-    app.run();
+    app.run();*/
+
+    // Initialiser GTK.
+    gtk::init().expect("Failed to initialize GTK.");
+
+    // Take ui.glade path
+    let glade_path = if let Ok(current_dir) = env::current_dir() {
+        if let Some(path_str) = current_dir.to_str() {
+            path_str.to_string() + "/res/ui.glade"
+        } else {
+            panic!("Unable to convert path in characters");
+        }
+    } else {
+        panic!("Unable to find current directory");
+    };
+
+    let builder = gtk::Builder::from_file(glade_path);
+    let gtk_window: gtk::Window = builder.object("main_window").expect("No window found");
+
+    let mut image: gtk::Image = builder.object("main_3d_image").expect("no menu image found");
+
+    gtk_window.show_all();
+
+    init_gtk_buttons(&builder);
+
+    // Créer la fenêtre kiss3D.
+    let mut window = Window::new_hidden("Rubik's 2000");
+    window.set_light(Light::StickToCamera);
+
+    let mut camera = FirstPerson::new(Point::new(-10., 10., 6.), Point::new(0., 0., 0.));
+
+    let cube = Cube::new_filled(3);
+    let mut gcube = Gcube::new(cube, &mut window);
+
+    // Variable partagée pour vérifier si la touche "espace" est pressée
+    let space_pressed = Arc::new(Mutex::new(false));
+
+    // Clôtures pour gérer les événements de pression et de libération de la touche "espace"
+    let space_pressed_key_press = Arc::clone(&space_pressed);
+    let space_pressed_key_release = Arc::clone(&space_pressed);
+
+    gtk_window.connect_key_press_event(move |_, key_event| {
+        if key_event.keyval() == gtk::gdk::keys::constants::space {
+            *space_pressed_key_press.lock().unwrap() = true;
+        }
+        gtk::glib::Propagation::Stop
+    });
+
+    gtk_window.connect_key_release_event(move |_, key_event| {
+        if key_event.keyval() == gtk::gdk::keys::constants::space {
+            *space_pressed_key_release.lock().unwrap() = false;
+        }
+        gtk::glib::Propagation::Stop
+    });
+
+    // Boucle principale
+    loop {
+        update_gtk_image(&mut window, &mut image);
+
+        // Rendre la fenêtre kiss3D
+        if !window.render_with_camera(&mut camera) {
+            break;
+        }
+
+        // Vérifier si la touche "espace" est pressée
+        if *space_pressed.lock().unwrap() {
+            println!("La touche espace est pressée !");
+            gcube.apply_move(&mut window, H, 0, &mut image, &mut camera);
+        }
+    }
 }
