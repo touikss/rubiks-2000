@@ -701,6 +701,24 @@
                     <property name="position">2</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkLabel" id="camera_info_label">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Show a face to your camera
+yeye</property>
+                    <property name="justify">center</property>
+                    <property name="ellipsize">middle</property>
+                    <attributes>
+                      <attribute name="variant" value="small-caps"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
               </object>
             </child>
           </object>

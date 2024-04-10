@@ -34,6 +34,20 @@ const VIEWS_ID: [&str; 4] = [TIMER_ID, MENU_ID, SOLVER_ID, CAMERA_ID];
 const CAMERA_WIDTH: u32 = 640;
 const CAMERA_HEIGHT: u32 = 480;
 
+const INFO_STRINGS: [&str; 11] = [
+    "Modify your capture (click on facelets you want to change), then, validate",
+    "Turn your cube to the right and show it to the camera.\nAlign it with the green squares\nThen, validate!",
+    "Modify your capture (click on facelets you want to change), then, validate",
+    "Turn your cube to the right and show it to the camera.\nAlign it with the green squares\nThen, validate!",
+    "Modify your capture (click on facelets you want to change), then, validate",
+    "Turn your cube to the right and show it to the camera.\nAlign it with the green squares\nThen, validate!",
+    "Modify your capture (click on facelets you want to change), then, validate",
+    "Turn your cube upwards and show it to the camera.\nAlign it with the green squares\nThen, validate!",
+    "Modify your capture (click on facelets you want to change), then, validate",
+    "Turn your cube upwards TWICE and show it to the camera.\nAlign it with the green squares\nThen, validate!",
+    "Modify your capture (click on facelets you want to change), then, validate",
+];
+
 fn show_view(builder: &Builder, view: &str) {
     for v in VIEWS_ID {
         let gtk_view: gtk::Viewport = builder.object(v).expect("Couldn't get view stack");
@@ -75,6 +89,12 @@ fn open_camera(builder: &Builder) {
         .object("camera_image")
         .expect("no camera image found");
 
+    // Get info label
+    let label: gtk::Label = builder
+        .object("camera_info_label")
+        .expect("no camera image found");
+    label.set_label("Show a face to your camera");
+
     // bool for ok button
     let is_next_pressed = Rc::new(RefCell::new(0));
     let is_next_pressed_clone = Rc::clone(&is_next_pressed);
@@ -86,13 +106,26 @@ fn open_camera(builder: &Builder) {
 
     let camera_next_button_ref = camera_next_button.clone();
     camera_next_button.connect_clicked(move |_| {
+        // increase step count
         *is_next_pressed_clone.borrow_mut() += 1;
-        *is_next_pressed_clone.borrow_mut() %= 3;
+        //*is_next_pressed_clone.borrow_mut() %= 3;
+
+        let s = *is_next_pressed_clone.borrow_mut();
+        dbg!(s);
+
+        // update button label
         if *is_next_pressed_clone.borrow_mut() == 2 {
             camera_next_button_ref.set_label("Capture");
+        } else if *is_next_pressed_clone.borrow_mut() < 11 {
+            camera_next_button_ref.set_label("Next");
         } else {
-            camera_next_button_ref.set_label("Ok");
+            camera_next_button_ref.set_label("Finish");
+            todo!();
+            return;
         }
+
+        // update info label
+        label.set_label(INFO_STRINGS[*is_next_pressed_clone.borrow_mut() - 1]);
     });
 
     // bool for back button
@@ -202,7 +235,7 @@ fn open_camera(builder: &Builder) {
     for _ in 0..6 {
         // reset step
         let is_next_pressed_clone = Rc::clone(&is_next_pressed);
-        *is_next_pressed_clone.borrow_mut() = 0;
+        //*is_next_pressed_clone.borrow_mut() = 0;
 
         // first loop capturing the colors
         loop {
@@ -216,7 +249,7 @@ fn open_camera(builder: &Builder) {
 
             // break this loop and go next step
             let is_next_pressed_clone = Rc::clone(&is_next_pressed);
-            if *is_next_pressed_clone.borrow_mut() > 0 {
+            if *is_next_pressed_clone.borrow_mut() % 2 == 1 {
                 break;
             }
 
@@ -285,14 +318,12 @@ fn open_camera(builder: &Builder) {
             // quit
             let is_back_pressed_clone = Rc::clone(&is_back_pressed);
             if *is_back_pressed_clone.borrow_mut() {
-                show_view(builder, SOLVER_ID);
-                camera.stop().unwrap();
                 break;
             }
 
             // break this loop and go next step
             let is_next_pressed_clone = Rc::clone(&is_next_pressed);
-            if *is_next_pressed_clone.borrow_mut() > 1 {
+            if *is_next_pressed_clone.borrow_mut() % 2 == 0 {
                 break;
             }
 
@@ -305,6 +336,8 @@ fn open_camera(builder: &Builder) {
         // quit
         let is_back_pressed_clone = Rc::clone(&is_back_pressed);
         if *is_back_pressed_clone.borrow_mut() {
+            show_view(builder, SOLVER_ID);
+            camera.stop().unwrap();
             break;
         }
     }
