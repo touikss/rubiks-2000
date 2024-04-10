@@ -2,6 +2,7 @@ extern crate gtk;
 use gtk::{false_, prelude::*, Builder};
 use gtk::{Application, ApplicationWindow, Box, Button, Label};
 use std::cell::RefCell;
+use std::env;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
@@ -10,6 +11,12 @@ struct Chronometer {
     total_paused_time: Duration,
     last_pause_time: Option<Instant>,
 }
+
+
+const TIMER_ID: &str = "timer_view";
+const MENU_ID: &str = "menu_view";
+const SOLVER_ID: &str = "main_view";
+
 
 impl Chronometer {
     fn new() -> Chronometer {
@@ -95,50 +102,56 @@ fn rubikronometer() {
     window.show_all();
 }
 
+// Open the main view
 fn open_main(builder: &Builder) {
     let menu_view: gtk::Viewport = builder
-        .object("menu_view")
+        .object(MENU_ID)
         .expect("Couldn't get view stack");
     let main_view: gtk::Viewport = builder
-        .object("main_view")
+        .object(SOLVER_ID)
         .expect("Couldn't get view stack");
     let timer_view: gtk::Viewport = builder
-        .object("rubikronometer_view")
+        .object(TIMER_ID)
         .expect("Couldn't get view stack");
     menu_view.set_visible(false);
     main_view.set_visible(true);
     timer_view.set_visible(false);
 }
 
+// Open the timer view
 fn open_timer(builder: &Builder) {
     let menu_view: gtk::Viewport = builder
-        .object("menu_view")
+        .object(MENU_ID)
         .expect("Couldn't get view stack");
     let main_view: gtk::Viewport = builder
-        .object("main_view")
+        .object(SOLVER_ID)
         .expect("Couldn't get view stack");
     let timer_view: gtk::Viewport = builder
-        .object("rubikronometer_view")
+        .object(TIMER_ID)
         .expect("Couldn't get view stack");
     menu_view.set_visible(false);
     main_view.set_visible(false);
     timer_view.set_visible(true);
 }
 
+// Open the menu view
 fn open_menu(builder: &Builder) {
     let menu_view: gtk::Viewport = builder
-        .object("menu_view")
+        .object(MENU_ID)
         .expect("Couldn't get view stack");
     let main_view: gtk::Viewport = builder
-        .object("main_view")
+        .object(SOLVER_ID)
         .expect("Couldn't get view stack");
     let timer_view: gtk::Viewport = builder
-        .object("rubikronometer_view")
+        .object(TIMER_ID)
         .expect("Couldn't get view stack");
     menu_view.set_visible(true);
     main_view.set_visible(false);
     timer_view.set_visible(false);
 }
+
+
+
 
 fn main() {
     let app = Application::new(Some("com.rubiks3000.app"), Default::default());
@@ -157,49 +170,60 @@ fn main() {
     });*/
 
     app.connect_activate(|app| {
+        
+        // Récupère le path du builder
+        let glade_path = if let Ok(current_dir) = env::current_dir() {
+            if let Some(path_str) = current_dir.to_str() {
+                path_str.to_string() + "/res/ui.glade"
+            } else {
+                panic!("Unable to convert path in characters");
+            }
+        } else {
+            panic!("Unable to find current directory");
+        };
+
         // Création de la fenêtre de menu
         let builder = Rc::new(gtk::Builder::from_file(
-            "/mnt/c/Users/artbo/rubiks-2000/ui/ui.glade",
+            glade_path,
         ));
 
-        let window: gtk::Window = builder.object("main_window").expect("Non");
+        // Get window
+        let window: gtk::Window = builder.object("main_window").expect("No window found");
 
         //Menu buttons
-        let quit_button: gtk::Button = builder.object("quit_button").expect("Pas bouton");
-        quit_button.connect_clicked(|_| {
+        let menu_quit_button: gtk::Button = builder.object("menu_quit_button").expect("No menu_quit_button found");
+        menu_quit_button.connect_clicked(|_| {
             gtk::main_quit();
         });
 
-        let timer_button: gtk::Button = builder.object("timer_button").expect("Pas bouton");
+        let menu_timer_button: gtk::Button = builder.object("menu_timer_button").expect("No menu_timer_button found");
 
         let build_clone = builder.clone();
-        timer_button.connect_clicked(move |_| {
+        menu_timer_button.connect_clicked(move |_| {
             open_timer(build_clone.as_ref());
         });
 
         let build_clone = builder.clone();
-        let main_button: gtk::Button = builder.object("solver_button").expect("Pas bouton");
-        main_button.connect_clicked(move |_| {
+        let menu_solver_button: gtk::Button = builder.object("menu_solver_button").expect("No menu_solver_button found");
+        menu_solver_button.connect_clicked(move |_| {
             open_main(build_clone.as_ref());
         });
 
         let build_clone = builder.clone();
-        //main buttons
-        let menu_button: gtk::Button = builder.object("menu_button").expect("Pas bouton");
+        let menu_button: gtk::Button = builder.object("main_back_button").expect("No button found");
         menu_button.connect_clicked(move |_| {
             open_menu(build_clone.as_ref());
         });
 
         //timer buttons
         let build_clone = builder.clone();
-        let menu_button2: gtk::Button = builder.object("menu_button2").expect("Pas bouton");
+        let menu_button2: gtk::Button = builder.object("timer_back_button").expect("No button found");
         menu_button2.connect_clicked(move |_| {
             open_menu(build_clone.as_ref());
-            print!("oui\n")
         });
 
-        let start_button: gtk::Button = builder.object("start_button").expect("Pas bouton");
-        let label :gtk::Label = builder.object("timer").expect("pas de label");
+        let start_button: gtk::Button = builder.object("start_button").expect("No button found");
+        let label: gtk::Label = builder.object("timer").expect("pas de label");
         let chronometer = Rc::new(RefCell::new(Chronometer::new()));
         let chronometer_clone = Rc::clone(&chronometer);
         let bol = RefCell::new(true);
@@ -218,9 +242,6 @@ fn main() {
                 *bol_clone.borrow_mut() = true;
             }
         });
-
-
-
 
         window.set_application(Some(app));
         window.show_all();
