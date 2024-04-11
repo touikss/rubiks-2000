@@ -125,8 +125,9 @@ impl Cublet {
 }
 
 pub struct Gcube {
-    pub cube: Cube,
+    cube: Cube,
     cublets: Vec<Cublet>,
+    node: SceneNode,
 }
 
 impl Gcube {
@@ -139,8 +140,8 @@ impl Gcube {
     /// ## Warning:
     /// The size of the cube will depend on the size of the '_cube' parameter!
     ///
-    pub fn new(_cube: Cube, window: &mut Window) -> Self {
-        let mut _node = window.add_group();
+    pub fn new(_cube: Cube, _window: &mut Window) -> Self {
+        let mut _node = _window.add_group();
         let s: i32 = 1;
         let mut _cublets = Vec::new();
 
@@ -162,24 +163,27 @@ impl Gcube {
                     let (x, y, z) = cublet.position;
 
                     if k == s {
-                        let (r, g, b) = _cube.get_faces()[5][((2-y) * 3 + (x)) as usize].to_rgb();
+                        let (r, g, b) = _cube.get_faces()[5][((2 - y) * 3 + (x)) as usize].to_rgb();
                         cublet.back_face.set_color(r, g, b);
                     } else if k == -s {
-                        let (r, g, b) = _cube.get_faces()[0][((2 - y) * 3 + (2 - x)) as usize].to_rgb();
+                        let (r, g, b) =
+                            _cube.get_faces()[0][((2 - y) * 3 + (2 - x)) as usize].to_rgb();
                         cublet.front_face.set_color(r, g, b);
                     }
                     if i == s {
-                        let (r, g, b) = _cube.get_faces()[2][((2 -y) * 3 + (2 - z)) as usize].to_rgb();
+                        let (r, g, b) =
+                            _cube.get_faces()[2][((2 - y) * 3 + (2 - z)) as usize].to_rgb();
                         cublet.left_face.set_color(r, g, b);
                     } else if i == -s {
                         let (r, g, b) = _cube.get_faces()[4][((2 - y) * 3 + (z)) as usize].to_rgb();
                         cublet.right_face.set_color(r, g, b);
                     }
                     if j == s {
-                        let (r, g, b) = _cube.get_faces()[1][((2 - z) * 3 + (2 - x)) as usize].to_rgb();
+                        let (r, g, b) =
+                            _cube.get_faces()[1][((2 - z) * 3 + (2 - x)) as usize].to_rgb();
                         cublet.top_face.set_color(r, g, b);
                     } else if j == -s {
-                        let (r, g, b) = _cube.get_faces()[3][(z * 3 + (2 -x)) as usize].to_rgb();
+                        let (r, g, b) = _cube.get_faces()[3][(z * 3 + (2 - x)) as usize].to_rgb();
                         cublet.bottom_face.set_color(r, g, b);
                     }
                     let rc_child = Rc::new(RefCell::new(cublet));
@@ -195,7 +199,71 @@ impl Gcube {
             cube: _cube,
 
             cublets: _cublets,
+            node: _node,
         }
+    }
+
+    pub fn set_cube(&mut self, cube: Cube) {
+        let s: i32 = 1;
+        let mut _cublets = Vec::new();
+
+        for i in 0..self.cublets.len() {
+            let cublet = self.cublets[i].borrow_mut();
+            cublet
+                .node.set_visible(false);
+        }
+
+        for i in -s..=s {
+            let fx = i as f32;
+            for j in -s..=s {
+                let fy = j as f32;
+                for k in -s..=s {
+                    let fz = k as f32;
+                    let mut cublet = Cublet::new();
+                    let translation = Isometry3::translation(
+                        fx * OFFSET + fx,
+                        fy * OFFSET + fy,
+                        fz * OFFSET + fz,
+                    );
+                    cublet.node.set_local_transformation(translation);
+                    cublet.set_position((i + s) as usize, (j + s) as usize, (k + s) as usize);
+
+                    let (x, y, z) = cublet.position;
+
+                    if k == s {
+                        let (r, g, b) = cube.get_faces()[5][((2 - y) * 3 + (x)) as usize].to_rgb();
+                        cublet.back_face.set_color(r, g, b);
+                    } else if k == -s {
+                        let (r, g, b) =
+                            cube.get_faces()[0][((2 - y) * 3 + (x)) as usize].to_rgb();
+                        cublet.front_face.set_color(r, g, b);
+                    }
+                    if i == s {
+                        let (r, g, b) =
+                            cube.get_faces()[2][((2 - y) * 3 + (2 - z)) as usize].to_rgb();
+                        cublet.left_face.set_color(r, g, b);
+                    } else if i == -s {
+                        let (r, g, b) = cube.get_faces()[4][((2 - y) * 3 + (z)) as usize].to_rgb();
+                        cublet.right_face.set_color(r, g, b);
+                    }
+                    if j == s {
+                        let (r, g, b) =
+                            cube.get_faces()[1][((2 - z) * 3 + (2 - x)) as usize].to_rgb();
+                        cublet.top_face.set_color(r, g, b);
+                    } else if j == -s {
+                        let (r, g, b) = cube.get_faces()[3][(z * 3 + (2 - x)) as usize].to_rgb();
+                        cublet.bottom_face.set_color(r, g, b);
+                    }
+                    let rc_child = Rc::new(RefCell::new(cublet));
+                    let child_node = Rc::clone(&rc_child).borrow().node.clone();
+                    let cublet = Rc::clone(&rc_child).borrow().clone();
+                    self.node.add_child(child_node);
+                    _cublets.push(cublet);
+                }
+            }
+        }
+
+        self.cublets = _cublets;
     }
 
     pub fn shuffle(

@@ -2,19 +2,49 @@ use std::fmt;
 
 use super::utils::{self, *};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ColorType {
     Red,
-    Blue,
-    Green,
-    Yellow,
-    Black,
-    White,
     Orange,
+    Blue,
+    Yellow,
+    Green,
+    White,
+    Black,
     Empty,
+    Other
 }
 
 impl ColorType {
+    pub fn to_rgb(&self) -> (f32, f32, f32) {
+        let (r, g, b) = match self {
+            ColorType::Red => (1.0, 0.0, 0.0),
+            ColorType::Orange => (1.0, 0.5, 0.0),
+            ColorType::Blue => (0., 0., 1.0),
+            ColorType::Yellow => (1.0, 1.0, 0.0),
+            ColorType::Green => (0., 1., 0.),
+            ColorType::White => (1., 1., 1.),
+            ColorType::Empty => (0., 0., 0.),
+            ColorType::Other => (0., 0., 0.),
+            ColorType::Black => (0., 0., 0.),
+        };
+        (r, g, b)
+    }
+
+    pub fn pretty_print(&self) {
+        let code = match self {
+            Self::Blue => "\x1b[34m",
+            Self::White => "\x1b[37m",
+            Self::Green => "\x1b[32m",
+            Self::Red => "\x1b[31m",
+            Self::Orange => "\x1b[38;5;208m",
+            Self::Yellow => "\x1b[33m",
+            _ => "\x1b[30m",
+        };
+        let reset_code = "\x1b[0m"; // Code pour réinitialiser la couleur à la couleur par défaut
+        print!("{}██{}", code, reset_code);
+    }
+
     pub fn color(&self) -> Color {
         match self {
             ColorType::Red => RED,
@@ -24,7 +54,7 @@ impl ColorType {
             ColorType::Black => BLACK,
             ColorType::White => WHITE,
             ColorType::Orange => ORANGE,
-            ColorType::Empty => BLACK,
+            _ => BLACK,
         }
     }
 
@@ -41,6 +71,7 @@ impl ColorType {
         COLORS.iter().copied()
     }
 }
+
 
 #[derive(Clone, Copy)]
 pub struct Color {

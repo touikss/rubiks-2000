@@ -1,66 +1,12 @@
 use rand::Rng;
+use ui::imagery::color::ColorType;
 use std::fmt;
 use std::vec;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Color {
-    Red,
-    Orange,
-    Blue,
-    Yellow,
-    Green,
-    White,
-    Empty,
-}
-
-impl Color {
-    pub fn to_rgb(&self) -> (f32, f32, f32){
-        let (r, g, b) = match self {
-            Color::Red => (1.0, 0.0, 0.0),
-            Color::Orange => (1.0, 0.5, 0.0),
-            Color::Blue => (0., 0., 1.0),
-            Color::Yellow => (1.0, 1.0, 0.0),
-            Color::Green => (0., 1., 0.),
-            Color::White => (1., 1., 1.),
-            Color::Empty => (0., 0., 0.),
-        };
-        (r, g, b)
-    }
-
-    fn pretty_print(&self) {
-        let code = match self {
-            Self::Blue => "\x1b[34m",
-            Self::White => "\x1b[37m",
-            Self::Green => "\x1b[32m",
-            Self::Red => "\x1b[31m",
-            Self::Orange => "\x1b[38;5;208m",
-            Self::Yellow => "\x1b[33m",
-            _ => "\x1b[30m",
-        };
-        let reset_code = "\x1b[0m"; // Code pour réinitialiser la couleur à la couleur par défaut
-        print!("{}██{}", code, reset_code);
-    }
-}
-
-impl fmt::Display for Color {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let string_representation = match self {
-            Color::Red => "R",
-            Color::Orange => "O",
-            Color::Blue => "B",
-            Color::Yellow => "Y",
-            Color::Green => "G",
-            Color::White => "W",
-            Color::Empty => "E",
-        };
-        write!(f, "{}", string_representation)
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub struct Cube {
     size: usize,
-    faces: Vec<Vec<Color>>,
+    faces: [[ColorType; 9]; 6],
 }
 
 impl Cube {
@@ -71,7 +17,7 @@ impl Cube {
     pub fn new_empty(_size: usize) -> Self {
         Cube {
             size: _size,
-            faces: vec![vec![Color::Empty; _size * _size]; _size],
+            faces: [[ColorType::Empty; 9]; 6],
         }
     }
 
@@ -82,13 +28,13 @@ impl Cube {
     /// * '_size' - the size of the cube
     pub fn new_filled(_size: usize) -> Self {
         let size = _size;
-        let green_face = vec![Color::Green; size * size];
-        let white_face = vec![Color::White; size * size];
-        let orange_face = vec![Color::Orange; size * size];
-        let yellow_face = vec![Color::Yellow; size * size];
-        let red_face = vec![Color::Red; size * size];
-        let blue_face = vec![Color::Blue; size * size];
-        let faces = vec![
+        let green_face = [ColorType::Green; 9];
+        let white_face = [ColorType::White; 9];
+        let orange_face = [ColorType::Orange; 9];
+        let yellow_face = [ColorType::Yellow; 9];
+        let red_face = [ColorType::Red; 9];
+        let blue_face = [ColorType::Blue; 9];
+        let faces = [
             white_face,
             blue_face,
             red_face,
@@ -104,8 +50,12 @@ impl Cube {
         self.size
     }
 
-    pub fn get_faces(&self) -> &Vec<Vec<Color>>{
-        &self.faces
+    pub fn get_faces(&self) -> [[ColorType; 9]; 6] {
+        self.faces
+    }
+
+    pub fn set_facelet(&mut self, face: usize, i: u32, j: u32, color: ColorType) {
+        self.faces[face][(i * 3 + j) as usize] = color;
     }
 
     pub fn dbg(&self) {
@@ -152,8 +102,8 @@ impl Cube {
     /// # Return
     ///
     /// The colors composing this colonn in a vector
-    fn get_col(&self, face: usize, col: usize) -> Vec<Color> {
-        let mut res = Vec::new();
+    fn get_col(&self, face: usize, col: usize) -> Vec<ColorType> {
+        let mut res = vec![];
 
         for (index, case) in self.faces[face].iter().enumerate() {
             if index % self.size == col {
@@ -174,8 +124,9 @@ impl Cube {
     /// # Return
     ///
     /// The colors composing this row in a vector
-    fn get_row(&self, face: usize, row: usize) -> Vec<Color> {
-        let mut res = Vec::new();
+    fn get_row(&self, face: usize, row: usize) -> Vec<ColorType> {
+        let mut res = vec![];
+
         let stop = self.size * (row + 1);
         for (index, case) in self.faces[face].iter().enumerate().skip(self.size * row) {
             if index < stop {
@@ -197,8 +148,9 @@ impl Cube {
     /// # Return
     ///
     /// The colors composing this colonn (before it was changed) in a vector
-    fn fill_col(&mut self, face: usize, col: usize, rep: Vec<Color>) -> Vec<Color> {
-        let mut res = Vec::new();
+    fn fill_col(&mut self, face: usize, col: usize, rep: Vec<ColorType>) -> Vec<ColorType> {
+        let mut res = vec![];
+
         for i in 0..self.size {
             let acc = self.faces[face][col + i * self.size];
             res.push(acc);
@@ -219,8 +171,9 @@ impl Cube {
     /// # Return
     ///
     /// The colors composing this row (before it was changed) in a vector
-    fn fill_row(&mut self, face: usize, row: usize, rep: Vec<Color>) -> Vec<Color> {
-        let mut res = Vec::new();
+    fn fill_row(&mut self, face: usize, row: usize, rep: Vec<ColorType>) -> Vec<ColorType> {
+        let mut res = vec![];
+
         for i in 0..self.size {
             let acc = self.faces[face][row * self.size + i];
             res.push(acc);
@@ -287,12 +240,14 @@ impl Cube {
     /// # Args
     /// * 'face' - The face to rotate
     fn rotate_left(&mut self, face: usize) {
-        let mut res = Vec::new();
+        let mut res = [ColorType::Empty; 9];
         let mut col;
-        for i in 0..self.size {
-            col = self.get_col(face, self.size - i - 1);
+        let mut count = 0;
+        for i in 0..3 {
+            col = self.get_col(face, 3 - i - 1);
             for y in col.iter() {
-                res.push(*y);
+                res[count] = *y;
+                count += 1;
             }
         }
         self.faces[face] = res;
@@ -383,7 +338,7 @@ impl Cube {
     ///
     /// # Args
     /// * 'face' - the face as a reference of a color vector
-    fn is_face_solved(&self, face: &Vec<Color>) -> bool {
+    fn is_face_solved(&self, face: &Vec<ColorType>) -> bool {
         let color = face[0];
 
         for c in face.iter() {
@@ -396,17 +351,17 @@ impl Cube {
 
     /// This function return true if cube is completed (all faces are uniform),
     /// false otherwise
-    pub fn is_solved(&self) -> bool {
+    /*pub fn is_solved(&self) -> bool {
         for f in self.faces.iter() {
             if !self.is_face_solved(f) {
                 return false;
             }
         }
         true
-    }
+    }*/
 
     /// This function shuffle the cube by doing some random moves
-    /// 
+    ///
     /// # Args
     /// * 'moves' - the number of move to do
     pub fn shuffle(&mut self, moves: u32) {

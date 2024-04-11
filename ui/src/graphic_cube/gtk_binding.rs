@@ -23,8 +23,3 @@ pub fn update_gtk_image(window: &mut Window, gtk_image: &mut gtk::Image) {
 
     (*gtk_image).set_from_pixbuf(Some(&pixbuf));
 }
-
-
-pub fn init_kiss3d() {
-    
-}

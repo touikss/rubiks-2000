@@ -2,18 +2,15 @@ extern crate gtk;
 extern crate kiss3d;
 extern crate nalgebra as na;
 
-use gtk::{
-    gdk::{self, RGBA},
-    gdk_pixbuf,
-    prelude::*,
-    Builder, Button, CssProvider, Label,
-};
+use glib::Propagation;
+use gtk::atk::CoordType;
+use gtk::{gdk_pixbuf, prelude::*, Builder, Button, CssProvider, Label};
 
 use rscam::Config;
-use std::cell::RefCell;
 use std::env;
 use std::rc::Rc;
 use std::time::Instant;
+use std::{cell::RefCell, process::Command};
 use ui::imagery::{self, color::ColorType};
 mod cube;
 mod graphic_cube;
@@ -30,7 +27,8 @@ const TIMER_ID: &str = "timer_view";
 const MENU_ID: &str = "menu_view";
 const SOLVER_ID: &str = "main_view";
 const CAMERA_ID: &str = "camera_view";
-const VIEWS_ID: [&str; 4] = [TIMER_ID, MENU_ID, SOLVER_ID, CAMERA_ID];
+const SOLUTION_VIEW: &str = "solution_view";
+const VIEWS_ID: [&str; 5] = [TIMER_ID, MENU_ID, SOLVER_ID, CAMERA_ID, SOLUTION_VIEW];
 
 const CAMERA_WIDTH: u32 = 640;
 const CAMERA_HEIGHT: u32 = 640;
@@ -116,10 +114,6 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
     camera_next_button.connect_clicked(move |_| {
         // increase step count
         *is_next_pressed_clone.borrow_mut() += 1;
-        //*is_next_pressed_clone.borrow_mut() %= 3;
-
-        let s = *is_next_pressed_clone.borrow_mut();
-        dbg!(s);
 
         let camera_image = &camera_next_button_ref
             .child()
@@ -137,15 +131,15 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
         if *is_next_pressed_clone.borrow_mut() % 2 == 0 {
             camera_image.set_visible(true);
             ok_image.set_visible(false);
-        } else if *is_next_pressed_clone.borrow_mut() < 11 {
+        } else {
             camera_image.set_visible(false);
             ok_image.set_visible(true);
-        } else {
-            //return Some(Cube::new_empty(3));
         }
 
-        // update info label
-        label.set_label(INFO_STRINGS[*is_next_pressed_clone.borrow_mut() - 1]);
+        if *is_next_pressed_clone.borrow_mut() <= 11 {
+            // update info label
+            label.set_label(INFO_STRINGS[*is_next_pressed_clone.borrow_mut() - 1]);
+        }
     });
 
     // bool for back button
@@ -180,6 +174,12 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
         .load_from_path("src/style.css")
         .expect("Failed to load CSS");
 
+    // the cube constructed
+    let cube = Rc::new(RefCell::new(Cube::new_empty(3)));
+
+    // step counter
+    let step_counter = Rc::new(RefCell::new(0));
+
     // init buttons
     for i in 0..3 {
         for j in 0..3 {
@@ -212,6 +212,13 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
 
             // init selection buttons
             if let Some(color) = ColorType::iter().nth((i * 3 + j) as usize) {
+                // Update color tab
+                let step_counter_clone = Rc::clone(&step_counter);
+                let cube_clone = Rc::clone(&cube);
+                cube_clone
+                    .borrow_mut()
+                    .set_facelet(*step_counter_clone.borrow(), i, j, color);
+
                 let select_button: Button = selection_grid
                     .child_at(i as i32, j as i32)
                     .expect("pas assez de boutton pour select")
@@ -253,15 +260,13 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
 
     // Start loop for capturing and displaying images
     for _ in 0..6 {
-        // reset step
-        //let is_next_pressed_clone = Rc::clone(&is_next_pressed);
-        //*is_next_pressed_clone.borrow_mut() = 0;
 
         // first loop capturing the colors
         loop {
             // quit
             let is_back_pressed_clone = Rc::clone(&is_back_pressed);
-            if *is_back_pressed_clone.borrow_mut() {
+            let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+            if *is_back_pressed_clone.borrow_mut() || *is_next_pressed_clone.borrow_mut() > 11 {
                 show_view(builder, SOLVER_ID);
                 camera.stop().unwrap();
                 break;
@@ -290,6 +295,15 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
                     // compute color
                     let color =
                         img.get_square_color(start_x + i * delta, start_y + j * delta, length);
+
+                    let step_counter_clone = Rc::clone(&step_counter);
+                    let color_tab_clone = Rc::clone(&cube);
+                    color_tab_clone.borrow_mut().set_facelet(
+                        *step_counter_clone.borrow(),
+                        i,
+                        j,
+                        color,
+                    );
 
                     // get button
                     let button: Button = display_grid
@@ -329,7 +343,8 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
 
         // quit
         let is_back_pressed_clone = Rc::clone(&is_back_pressed);
-        if *is_back_pressed_clone.borrow_mut() {
+        let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+        if *is_back_pressed_clone.borrow_mut() || *is_next_pressed_clone.borrow_mut() > 11 {
             break;
         }
 
@@ -337,7 +352,8 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
         loop {
             // quit
             let is_back_pressed_clone = Rc::clone(&is_back_pressed);
-            if *is_back_pressed_clone.borrow_mut() {
+            let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+            if *is_back_pressed_clone.borrow_mut() || *is_next_pressed_clone.borrow_mut() > 11 {
                 break;
             }
 
@@ -355,17 +371,36 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
 
         // quit
         let is_back_pressed_clone = Rc::clone(&is_back_pressed);
-        if *is_back_pressed_clone.borrow_mut() {
+        let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+        if *is_back_pressed_clone.borrow_mut() || *is_next_pressed_clone.borrow_mut() > 11 {
             show_view(builder, SOLVER_ID);
             camera.stop().unwrap();
             break;
         }
+
+        // increment step counter
+        let step_counter_clone = Rc::clone(&step_counter);
+        *step_counter_clone.borrow_mut() += 1;
+    }
+
+    // quit
+    let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+    if *is_next_pressed_clone.borrow_mut() > 11 {
+        let cube_clone = Rc::clone(&cube);
+        return Some(*cube_clone.borrow());
     }
 
     None
 }
 
 fn init_gtk_buttons(builder: &Builder) {
+    let menu_site_button: gtk::Button = builder
+        .object("menu_site_button")
+        .expect("No site_button found");
+    menu_site_button.connect_clicked(move |_| {
+        opensite();
+    });
+
     // Menu buttons
     let menu_quit_button: gtk::Button = builder
         .object("menu_quit_button")
@@ -474,7 +509,7 @@ fn open_timer(builder: &Builder) {
 fn loop_3d(builder: &Builder) {
     // Créer la fenêtre kiss3D.
     let mut window_3d = Window::new("Rubik's 2000");
-    window_3d.set_light(Light::StickToCamera);
+    window_3d.set_light(Light::Absolute(Point::new(0., 0., 0.)));
 
     // Set background color of 3D rendering
     let main_window: gtk::Window = builder.object("main_window").expect("no maon window");
@@ -497,24 +532,36 @@ fn loop_3d(builder: &Builder) {
         Point::new(0., 0., 0.),
     );
 
-    let cube = Cube::new_filled(3);
+    let cube = Rc::new(RefCell::new(Cube::new_filled(3)));
 
-    let mut gcube = Gcube::new(cube, &mut window_3d);
+    let cube_clone = Rc::clone(&cube);
+    let mut gcube = Gcube::new(*cube_clone.borrow(), &mut window_3d);
 
     let mut image: gtk::Image = builder
         .object("main_3d_image")
         .expect("no menu image found");
 
+    // a cube is provided by camera view
+    let is_camera_captured = Rc::new(RefCell::new(false));
+    let is_camera_captured_clone = Rc::clone(&is_camera_captured);
+
+    // camera button
     let main_camera_button: gtk::Button = builder
         .object("main_camera_button")
         .expect("No main camera button found");
     let build_clone = builder.clone();
+    let cube_clone = Rc::clone(&cube);
     main_camera_button.connect_clicked(move |_| {
-        open_camera(build_clone.as_ref());
+        // set new gcube
+        if let Some(new_cube) = open_camera(build_clone.as_ref()) {
+            *cube_clone.borrow_mut() = new_cube;
+            *is_camera_captured_clone.borrow_mut() = true;
+        }
     });
 
     // Bou c pas boooo
 
+    // F is pressed
     let is_f_pressed = Rc::new(RefCell::new(false));
     let is_f_pressed_clone = Rc::clone(&is_f_pressed);
 
@@ -523,6 +570,7 @@ fn loop_3d(builder: &Builder) {
         *is_f_pressed_clone.borrow_mut() = true;
     });
 
+    // B is pressed
     let is_b_pressed = Rc::new(RefCell::new(false));
     let is_b_pressed_clone = Rc::clone(&is_b_pressed);
 
@@ -531,6 +579,7 @@ fn loop_3d(builder: &Builder) {
         *is_b_pressed_clone.borrow_mut() = true;
     });
 
+    // L is pressed
     let is_l_pressed = Rc::new(RefCell::new(false));
     let is_l_pressed_clone = Rc::clone(&is_l_pressed);
 
@@ -539,6 +588,7 @@ fn loop_3d(builder: &Builder) {
         *is_l_pressed_clone.borrow_mut() = true;
     });
 
+    // R is pressed
     let is_r_pressed = Rc::new(RefCell::new(false));
     let is_r_pressed_clone = Rc::clone(&is_r_pressed);
 
@@ -547,6 +597,7 @@ fn loop_3d(builder: &Builder) {
         *is_r_pressed_clone.borrow_mut() = true;
     });
 
+    // U is pressed
     let is_u_pressed = Rc::new(RefCell::new(false));
     let is_u_pressed_clone = Rc::clone(&is_u_pressed);
 
@@ -555,6 +606,7 @@ fn loop_3d(builder: &Builder) {
         *is_u_pressed_clone.borrow_mut() = true;
     });
 
+    // D is pressed
     let is_d_pressed = Rc::new(RefCell::new(false));
     let is_d_pressed_clone = Rc::clone(&is_d_pressed);
 
@@ -563,6 +615,7 @@ fn loop_3d(builder: &Builder) {
         *is_d_pressed_clone.borrow_mut() = true;
     });
 
+    // shuffle is pressed
     let is_shuffle_pressed = Rc::new(RefCell::new(false));
     let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
     let main_shuffle_button: gtk::Button = builder
@@ -572,13 +625,24 @@ fn loop_3d(builder: &Builder) {
         *is_shuffle_pressed_clone.borrow_mut() = true;
     });
 
+    //3D loop
     loop {
+        // shuffle
         let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
         if *is_shuffle_pressed_clone.borrow_mut() {
             gcube.shuffle(&mut window_3d, 40, &mut image, &mut camera);
             *is_shuffle_pressed_clone.borrow_mut() = false;
         }
 
+        // camera captured
+        let is_camera_captured_clone = Rc::clone(&is_camera_captured);
+        let cube_clone = Rc::clone(&cube);
+        if *is_camera_captured.borrow_mut() {
+            gcube.set_cube(*cube_clone.borrow());
+            *is_camera_captured_clone.borrow_mut() = false;
+        }
+
+        // F is pressed
         let is_f_pressed_clone = Rc::clone(&is_f_pressed);
         if *is_f_pressed_clone.borrow_mut() {
             gcube.apply_move(
@@ -592,6 +656,7 @@ fn loop_3d(builder: &Builder) {
             *is_f_pressed_clone.borrow_mut() = false;
         }
 
+        // B is pressed
         let is_b_pressed_clone = Rc::clone(&is_b_pressed);
         if *is_b_pressed_clone.borrow_mut() {
             gcube.apply_move(
@@ -605,6 +670,7 @@ fn loop_3d(builder: &Builder) {
             *is_b_pressed_clone.borrow_mut() = false;
         }
 
+        // U is pressed
         let is_u_pressed_clone = Rc::clone(&is_u_pressed);
         if *is_u_pressed_clone.borrow_mut() {
             gcube.apply_move(
@@ -618,6 +684,7 @@ fn loop_3d(builder: &Builder) {
             *is_u_pressed_clone.borrow_mut() = false;
         }
 
+        // D is pressed
         let is_d_pressed_clone = Rc::clone(&is_d_pressed);
         if *is_d_pressed_clone.borrow_mut() {
             gcube.apply_move(
@@ -631,6 +698,7 @@ fn loop_3d(builder: &Builder) {
             *is_d_pressed_clone.borrow_mut() = false;
         }
 
+        // L is pressed
         let is_l_pressed_clone = Rc::clone(&is_l_pressed);
         if *is_l_pressed_clone.borrow_mut() {
             gcube.apply_move(
@@ -644,6 +712,7 @@ fn loop_3d(builder: &Builder) {
             *is_l_pressed_clone.borrow_mut() = false;
         }
 
+        // R is pressed
         let is_r_pressed_clone = Rc::clone(&is_r_pressed);
         if *is_r_pressed_clone.borrow_mut() {
             gcube.apply_move(
@@ -657,13 +726,19 @@ fn loop_3d(builder: &Builder) {
             *is_r_pressed_clone.borrow_mut() = false;
         }
 
+        // link between kiss3D and gtk
         update_gtk_image(&mut window_3d, &mut image);
 
-        // Rendre la fenêtre kiss3D
+        // Render kiss3D view
         if !window_3d.render_with_camera(&mut camera) {
             break;
         }
     }
+}
+
+fn opensite() {
+    let local_site_folder = "../site-web/index.html";
+    let _ = Command::new("xdg-open").arg(local_site_folder).output();
 }
 
 fn main() {

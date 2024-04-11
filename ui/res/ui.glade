@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 -->
+<!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.24"/>
   <object class="GtkImage" id="back_camera">
@@ -91,12 +91,28 @@
                 <property name="orientation">vertical</property>
                 <property name="homogeneous">True</property>
                 <child>
-                  <object class="GtkImage" id="menu_image">
-                    <property name="width-request">100</property>
-                    <property name="height-request">80</property>
+                  <object class="GtkAlignment">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="pixbuf">logo-cube.png</property>
+                    <property name="xscale">0</property>
+                    <property name="yscale">0</property>
+                    <child>
+                      <object class="GtkButton" id="menu_site_button">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <child>
+                          <object class="GtkImage" id="menu_site_image">
+                            <property name="width-request">100</property>
+                            <property name="height-request">80</property>
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="receives-default">True</property>
+                            <property name="pixbuf">logo-cube.png</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -1015,7 +1031,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkViewport" id="solve_view">
+          <object class="GtkViewport" id="solution_view">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="hexpand">True</property>
