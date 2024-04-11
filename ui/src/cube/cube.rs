@@ -26,6 +26,20 @@ impl Color {
         };
         (r, g, b)
     }
+
+    fn pretty_print(&self) {
+        let code = match self {
+            Self::Blue => "\x1b[34m",
+            Self::White => "\x1b[37m",
+            Self::Green => "\x1b[32m",
+            Self::Red => "\x1b[31m",
+            Self::Orange => "\x1b[38;5;208m",
+            Self::Yellow => "\x1b[33m",
+            _ => "\x1b[30m",
+        };
+        let reset_code = "\x1b[0m"; // Code pour réinitialiser la couleur à la couleur par défaut
+        print!("{}██{}", code, reset_code);
+    }
 }
 
 impl fmt::Display for Color {
@@ -92,6 +106,40 @@ impl Cube {
 
     pub fn get_faces(&self) -> &Vec<Vec<Color>>{
         &self.faces
+    }
+
+    pub fn dbg(&self) {
+        println!();
+        for (j, case) in self.faces[1].iter().enumerate() {
+            if j % self.size == 0 {
+                println!();
+                let space = " ".repeat(self.size * 2);
+                print!("{}", space);
+            }
+            case.pretty_print();
+        }
+        println!();
+
+        for j in 0..self.size {
+            for f in [2, 0, 4, 5] {
+                for i in 0..self.size {
+                    self.faces[f][i + j * self.size].pretty_print();
+                }
+            }
+            println!();
+        }
+        for (j, case) in self.faces[3].iter().enumerate() {
+            if j % self.size == 0 {
+                if j != 0 {
+                    println!();
+                }
+                let space = " ".repeat(self.size * 2);
+                print!("{}", space);
+            }
+            case.pretty_print();
+        }
+
+        println!();
     }
 
     /// This function return a Vector of Color composing a certain colon on a face

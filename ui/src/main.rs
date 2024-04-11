@@ -6,8 +6,9 @@ use gtk::{
     gdk::{self, RGBA},
     gdk_pixbuf,
     prelude::*,
-    Builder, Button, ColorButton, CssProvider, Label, StyleContext,
+    Builder, Button, CssProvider, Label,
 };
+
 use rscam::Config;
 use std::cell::RefCell;
 use std::env;
@@ -69,7 +70,7 @@ fn remove_css_class(button: &Button) {
 }
 
 // Open the camera view
-fn open_camera(builder: &Builder) {
+fn open_camera(builder: &Builder) -> Option<Cube> {
     // Show view
     show_view(builder, CAMERA_ID);
 
@@ -105,7 +106,12 @@ fn open_camera(builder: &Builder) {
         .expect("no d button found");
 
     let camera_next_button_ref = camera_next_button.clone();
-    let ok_image = &camera_next_button_ref.child().unwrap().downcast::<gtk::Box>().unwrap().children()[1];
+    let ok_image = &camera_next_button_ref
+        .child()
+        .unwrap()
+        .downcast::<gtk::Box>()
+        .unwrap()
+        .children()[1];
     ok_image.set_visible(false);
     camera_next_button.connect_clicked(move |_| {
         // increase step count
@@ -115,8 +121,18 @@ fn open_camera(builder: &Builder) {
         let s = *is_next_pressed_clone.borrow_mut();
         dbg!(s);
 
-        let camera_image = &camera_next_button_ref.child().unwrap().downcast::<gtk::Box>().unwrap().children()[0];
-        let ok_image = &camera_next_button_ref.child().unwrap().downcast::<gtk::Box>().unwrap().children()[1];
+        let camera_image = &camera_next_button_ref
+            .child()
+            .unwrap()
+            .downcast::<gtk::Box>()
+            .unwrap()
+            .children()[0];
+        let ok_image = &camera_next_button_ref
+            .child()
+            .unwrap()
+            .downcast::<gtk::Box>()
+            .unwrap()
+            .children()[1];
         // update image
         if *is_next_pressed_clone.borrow_mut() % 2 == 0 {
             camera_image.set_visible(true);
@@ -125,8 +141,7 @@ fn open_camera(builder: &Builder) {
             camera_image.set_visible(false);
             ok_image.set_visible(true);
         } else {
-            camera_next_button_ref.set_label("Finish");
-            todo!();
+            //return Some(Cube::new_empty(3));
         }
 
         // update info label
@@ -239,7 +254,7 @@ fn open_camera(builder: &Builder) {
     // Start loop for capturing and displaying images
     for _ in 0..6 {
         // reset step
-        let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+        //let is_next_pressed_clone = Rc::clone(&is_next_pressed);
         //*is_next_pressed_clone.borrow_mut() = 0;
 
         // first loop capturing the colors
@@ -346,6 +361,8 @@ fn open_camera(builder: &Builder) {
             break;
         }
     }
+
+    None
 }
 
 fn init_gtk_buttons(builder: &Builder) {
@@ -380,14 +397,6 @@ fn init_gtk_buttons(builder: &Builder) {
     let build_clone = builder.clone();
     main_back_button.connect_clicked(move |_| {
         show_view(&build_clone, MENU_ID);
-    });
-
-    let main_camera_button: gtk::Button = builder
-        .object("main_camera_button")
-        .expect("No main camera button found");
-    let build_clone = builder.clone();
-    main_camera_button.connect_clicked(move |_| {
-        open_camera(build_clone.as_ref());
     });
 }
 
@@ -464,7 +473,7 @@ fn open_timer(builder: &Builder) {
 
 fn loop_3d(builder: &Builder) {
     // Créer la fenêtre kiss3D.
-    let mut window_3d = Window::new_hidden("Rubik's 2000");
+    let mut window_3d = Window::new("Rubik's 2000");
     window_3d.set_light(Light::StickToCamera);
 
     // Set background color of 3D rendering
@@ -482,18 +491,27 @@ fn loop_3d(builder: &Builder) {
 
     // z pr tourner de gauche à droite
     // la cam regarde en direction du cube
+    // 5, 5, 7
     let mut camera = FirstPerson::new(
         Point::new(-5. * 0.8, 5. * 0.8, -7. * 0.8),
         Point::new(0., 0., 0.),
     );
 
-    let mut cube = Cube::new_filled(3);
-    cube.move_v(0);
+    let cube = Cube::new_filled(3);
+
     let mut gcube = Gcube::new(cube, &mut window_3d);
 
     let mut image: gtk::Image = builder
         .object("main_3d_image")
         .expect("no menu image found");
+
+    let main_camera_button: gtk::Button = builder
+        .object("main_camera_button")
+        .expect("No main camera button found");
+    let build_clone = builder.clone();
+    main_camera_button.connect_clicked(move |_| {
+        open_camera(build_clone.as_ref());
+    });
 
     // Bou c pas boooo
 
@@ -547,52 +565,95 @@ fn loop_3d(builder: &Builder) {
 
     let is_shuffle_pressed = Rc::new(RefCell::new(false));
     let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
-    let main_shuffle_button: gtk::Button = builder.object("main_shuffle_button").expect("no shuffle button found");
+    let main_shuffle_button: gtk::Button = builder
+        .object("main_shuffle_button")
+        .expect("no shuffle button found");
     main_shuffle_button.connect_clicked(move |_| {
         *is_shuffle_pressed_clone.borrow_mut() = true;
     });
 
     loop {
-        
         let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
         if *is_shuffle_pressed_clone.borrow_mut() {
             gcube.shuffle(&mut window_3d, 40, &mut image, &mut camera);
             *is_shuffle_pressed_clone.borrow_mut() = false;
         }
-        
+
         let is_f_pressed_clone = Rc::clone(&is_f_pressed);
         if *is_f_pressed_clone.borrow_mut() {
-            gcube.apply_move(&mut window_3d, L, 0, &mut image, &mut camera, ANIMATION_TIME);
+            gcube.apply_move(
+                &mut window_3d,
+                L,
+                0,
+                &mut image,
+                &mut camera,
+                ANIMATION_TIME,
+            );
             *is_f_pressed_clone.borrow_mut() = false;
         }
 
         let is_b_pressed_clone = Rc::clone(&is_b_pressed);
         if *is_b_pressed_clone.borrow_mut() {
-            gcube.apply_move(&mut window_3d, L, 2, &mut image, &mut camera, ANIMATION_TIME);
+            gcube.apply_move(
+                &mut window_3d,
+                L,
+                2,
+                &mut image,
+                &mut camera,
+                ANIMATION_TIME,
+            );
             *is_b_pressed_clone.borrow_mut() = false;
         }
 
         let is_u_pressed_clone = Rc::clone(&is_u_pressed);
         if *is_u_pressed_clone.borrow_mut() {
-            gcube.apply_move(&mut window_3d, H, 2, &mut image, &mut camera, ANIMATION_TIME);
+            gcube.apply_move(
+                &mut window_3d,
+                H,
+                2,
+                &mut image,
+                &mut camera,
+                ANIMATION_TIME,
+            );
             *is_u_pressed_clone.borrow_mut() = false;
         }
 
         let is_d_pressed_clone = Rc::clone(&is_d_pressed);
         if *is_d_pressed_clone.borrow_mut() {
-            gcube.apply_move(&mut window_3d, H, 0, &mut image, &mut camera, ANIMATION_TIME);
+            gcube.apply_move(
+                &mut window_3d,
+                H,
+                0,
+                &mut image,
+                &mut camera,
+                ANIMATION_TIME,
+            );
             *is_d_pressed_clone.borrow_mut() = false;
         }
 
         let is_l_pressed_clone = Rc::clone(&is_l_pressed);
         if *is_l_pressed_clone.borrow_mut() {
-            gcube.apply_move(&mut window_3d, V, 2, &mut image, &mut camera, ANIMATION_TIME);
+            gcube.apply_move(
+                &mut window_3d,
+                V,
+                2,
+                &mut image,
+                &mut camera,
+                ANIMATION_TIME,
+            );
             *is_l_pressed_clone.borrow_mut() = false;
         }
 
         let is_r_pressed_clone = Rc::clone(&is_r_pressed);
         if *is_r_pressed_clone.borrow_mut() {
-            gcube.apply_move(&mut window_3d, V, 0, &mut image, &mut camera, ANIMATION_TIME);
+            gcube.apply_move(
+                &mut window_3d,
+                V,
+                0,
+                &mut image,
+                &mut camera,
+                ANIMATION_TIME,
+            );
             *is_r_pressed_clone.borrow_mut() = false;
         }
 
@@ -607,6 +668,11 @@ fn loop_3d(builder: &Builder) {
 
 fn main() {
     gtk::init().expect("Failed to initialize GTK.");
+
+    // force dark theme
+    gtk::Settings::default()
+        .expect("Failed to get GTK settings")
+        .set_gtk_application_prefer_dark_theme(true);
 
     // Take ui.glade path
     let glade_path = if let Ok(current_dir) = env::current_dir() {
@@ -623,12 +689,6 @@ fn main() {
     let gtk_window: gtk::Window = builder.object("main_window").expect("No window found");
     gtk_window.maximize();
     gtk_window.show_all();
-
-    gtk::Settings::default()
-        .expect("Failed to get GTK settings")
-        .set_gtk_application_prefer_dark_theme(true);
-
-    
 
     init_gtk_buttons(&builder);
     loop_3d(&builder);

@@ -162,24 +162,24 @@ impl Gcube {
                     let (x, y, z) = cublet.position;
 
                     if k == s {
-                        let (r, g, b) = _cube.get_faces()[5][(y * 3 + z) as usize].to_rgb();
+                        let (r, g, b) = _cube.get_faces()[5][((2-y) * 3 + (x)) as usize].to_rgb();
                         cublet.back_face.set_color(r, g, b);
                     } else if k == -s {
-                        let (r, g, b) = _cube.get_faces()[0][(y * 3 + z) as usize].to_rgb();
+                        let (r, g, b) = _cube.get_faces()[0][((2 - y) * 3 + (2 - x)) as usize].to_rgb();
                         cublet.front_face.set_color(r, g, b);
                     }
                     if i == s {
-                        let (r, g, b) = _cube.get_faces()[2][(y * 3 + (2 - z)) as usize].to_rgb();
+                        let (r, g, b) = _cube.get_faces()[2][((2 -y) * 3 + (2 - z)) as usize].to_rgb();
                         cublet.left_face.set_color(r, g, b);
                     } else if i == -s {
-                        let (r, g, b) = _cube.get_faces()[4][(y * 3 + z) as usize].to_rgb();
+                        let (r, g, b) = _cube.get_faces()[4][((2 - y) * 3 + (z)) as usize].to_rgb();
                         cublet.right_face.set_color(r, g, b);
                     }
                     if j == s {
-                        let (r, g, b) = _cube.get_faces()[1][((2 - z) * 3 + x) as usize].to_rgb();
+                        let (r, g, b) = _cube.get_faces()[1][((2 - z) * 3 + (2 - x)) as usize].to_rgb();
                         cublet.top_face.set_color(r, g, b);
                     } else if j == -s {
-                        let (r, g, b) = _cube.get_faces()[3][(z * 3 + y) as usize].to_rgb();
+                        let (r, g, b) = _cube.get_faces()[3][(z * 3 + (2 -x)) as usize].to_rgb();
                         cublet.bottom_face.set_color(r, g, b);
                     }
                     let rc_child = Rc::new(RefCell::new(cublet));
