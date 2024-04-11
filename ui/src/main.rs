@@ -6,7 +6,7 @@ use gtk::{
     gdk::{self, RGBA},
     gdk_pixbuf,
     prelude::*,
-    Builder, Button, ColorButton, CssProvider, StyleContext,
+    Builder, Button, ColorButton, CssProvider, Label, StyleContext,
 };
 use rscam::Config;
 use std::cell::RefCell;
@@ -32,20 +32,20 @@ const CAMERA_ID: &str = "camera_view";
 const VIEWS_ID: [&str; 4] = [TIMER_ID, MENU_ID, SOLVER_ID, CAMERA_ID];
 
 const CAMERA_WIDTH: u32 = 640;
-const CAMERA_HEIGHT: u32 = 480;
+const CAMERA_HEIGHT: u32 = 640;
 
 const INFO_STRINGS: [&str; 11] = [
-    "Modify your capture (click on facelets you want to change), then, validate",
-    "Turn your cube to the right and show it to the camera.\nAlign it with the green squares\nThen, validate!",
-    "Modify your capture (click on facelets you want to change), then, validate",
-    "Turn your cube to the right and show it to the camera.\nAlign it with the green squares\nThen, validate!",
-    "Modify your capture (click on facelets you want to change), then, validate",
-    "Turn your cube to the right and show it to the camera.\nAlign it with the green squares\nThen, validate!",
-    "Modify your capture (click on facelets you want to change), then, validate",
-    "Turn your cube upwards and show it to the camera.\nAlign it with the green squares\nThen, validate!",
-    "Modify your capture (click on facelets you want to change), then, validate",
-    "Turn your cube upwards TWICE and show it to the camera.\nAlign it with the green squares\nThen, validate!",
-    "Modify your capture (click on facelets you want to change), then, validate",
+    "Modify your capture (click on facelets you want to change)",
+    "Turn your cube to the right and align it with the green squares",
+    "Modify your capture (click on facelets you want to change)",
+    "Turn your cube to the right and align it with the green squares",
+    "Modify your capture (click on facelets you want to change)",
+    "Turn your cube to the right and align it with the green squares",
+    "Modify your capture (click on facelets you want to change)",
+    "Turn your cube upwards and align it with the green squares",
+    "Modify your capture (click on facelets you want to change)",
+    "Turn your cube upwards TWICE and align it with the green squares",
+    "Modify your capture (click on facelets you want to change)",
 ];
 
 fn show_view(builder: &Builder, view: &str) {
@@ -105,6 +105,8 @@ fn open_camera(builder: &Builder) {
         .expect("no d button found");
 
     let camera_next_button_ref = camera_next_button.clone();
+    let ok_image = &camera_next_button_ref.child().unwrap().downcast::<gtk::Box>().unwrap().children()[1];
+    ok_image.set_visible(false);
     camera_next_button.connect_clicked(move |_| {
         // increase step count
         *is_next_pressed_clone.borrow_mut() += 1;
@@ -113,15 +115,18 @@ fn open_camera(builder: &Builder) {
         let s = *is_next_pressed_clone.borrow_mut();
         dbg!(s);
 
-        // update button label
-        if *is_next_pressed_clone.borrow_mut() == 2 {
-            camera_next_button_ref.set_label("Capture");
+        let camera_image = &camera_next_button_ref.child().unwrap().downcast::<gtk::Box>().unwrap().children()[0];
+        let ok_image = &camera_next_button_ref.child().unwrap().downcast::<gtk::Box>().unwrap().children()[1];
+        // update image
+        if *is_next_pressed_clone.borrow_mut() % 2 == 0 {
+            camera_image.set_visible(true);
+            ok_image.set_visible(false);
         } else if *is_next_pressed_clone.borrow_mut() < 11 {
-            camera_next_button_ref.set_label("Next");
+            camera_image.set_visible(false);
+            ok_image.set_visible(true);
         } else {
             camera_next_button_ref.set_label("Finish");
             todo!();
-            return;
         }
 
         // update info label
@@ -438,11 +443,14 @@ fn open_timer(builder: &Builder) {
 
         let is_switch_pressed_clone = Rc::clone(&is_switch_pressed);
         if *is_switch_pressed_clone.borrow_mut() {
-            if !is_running {
-                timer_switch_button.set_label("Stop");
-                start_time = Instant::now();
-            } else {
-                timer_switch_button.set_label("Start");
+            if let Some(child) = timer_switch_button.child() {
+                let label = child.downcast::<Label>().expect("pas de label pr le timer");
+                if !is_running {
+                    label.set_label("Stop");
+                    start_time = Instant::now();
+                } else {
+                    label.set_label("Start");
+                }
             }
             is_running = !is_running;
             *is_switch_pressed_clone.borrow_mut() = false;
@@ -459,9 +467,25 @@ fn loop_3d(builder: &Builder) {
     let mut window_3d = Window::new_hidden("Rubik's 2000");
     window_3d.set_light(Light::StickToCamera);
 
+    // Set background color of 3D rendering
+    let main_window: gtk::Window = builder.object("main_window").expect("no maon window");
+    let style_context = main_window.style_context();
+    if let Some(color) = style_context.lookup_color("theme_bg_color") {
+        window_3d.set_background_color(
+            color.red() as f32,
+            color.green() as f32,
+            color.blue() as f32,
+        );
+    } else {
+        window_3d.set_background_color(0., 0., 0.);
+    }
+
     // z pr tourner de gauche à droite
     // la cam regarde en direction du cube
-    let mut camera = FirstPerson::new(Point::new(-10., 10., -14.), Point::new(0., 0., 0.));
+    let mut camera = FirstPerson::new(
+        Point::new(-5. * 0.8, 5. * 0.8, -7. * 0.8),
+        Point::new(0., 0., 0.),
+    );
 
     let cube = Cube::new_filled(3);
     let mut gcube = Gcube::new(cube, &mut window_3d);
@@ -588,6 +612,7 @@ fn main() {
 
     let builder = gtk::Builder::from_file(glade_path);
     let gtk_window: gtk::Window = builder.object("main_window").expect("No window found");
+    gtk_window.maximize();
     gtk_window.show_all();
 
     init_gtk_buttons(&builder);
