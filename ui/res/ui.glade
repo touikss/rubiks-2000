@@ -2,26 +2,36 @@
 <!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.24"/>
-  <object class="GtkImage" id="camera_img">
+  <object class="GtkImage" id="camera">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="icon-name">media-optical</property>
+    <property name="pixbuf">camera.png</property>
     <property name="use-fallback">True</property>
   </object>
-  <object class="GtkImage" id="menu2_img">
+  <object class="GtkImage" id="clock">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="icon-name">edit-undo</property>
+    <property name="pixbuf">clock.png</property>
   </object>
-  <object class="GtkImage" id="menu_img">
+  <object class="GtkImage" id="cross">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="icon-name">edit-undo</property>
+    <property name="pixbuf">cross.png</property>
   </object>
-  <object class="GtkImage" id="solution_img">
+  <object class="GtkImage" id="cube">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
-    <property name="icon-name">edit-find</property>
+    <property name="pixbuf">cube.png</property>
+  </object>
+  <object class="GtkImage" id="home">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">menu.png</property>
+  </object>
+  <object class="GtkImage" id="search">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">search.png</property>
   </object>
   <object class="GtkWindow" id="main_window">
     <property name="can-focus">False</property>
@@ -73,10 +83,10 @@
                         <property name="homogeneous">True</property>
                         <child>
                           <object class="GtkButton" id="menu_solver_button">
-                            <property name="label" translatable="yes">Solver</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="image">cube</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -86,10 +96,10 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="menu_timer_button">
-                            <property name="label" translatable="yes">Timer</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="image">clock</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -99,10 +109,10 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="menu_quit_button">
-                            <property name="label" translatable="yes">Quit</property>
                             <property name="visible">True</property>
                             <property name="can-focus">True</property>
                             <property name="receives-default">True</property>
+                            <property name="image">cross</property>
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -157,7 +167,7 @@
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="image">menu_img</property>
+                                <property name="image">home</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -170,7 +180,7 @@
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="image">camera_img</property>
+                                <property name="image">camera</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -183,7 +193,7 @@
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="image">solution_img</property>
+                                <property name="image">search</property>
                               </object>
                               <packing>
                                 <property name="expand">False</property>
@@ -341,7 +351,6 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
-                        <property name="image">menu2_img</property>
                       </object>
                     </child>
                   </object>
@@ -705,8 +714,7 @@
                   <object class="GtkLabel" id="camera_info_label">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Show a face to your camera
-yeye</property>
+                    <property name="label" translatable="yes">Show a face to your camera</property>
                     <property name="justify">center</property>
                     <property name="ellipsize">middle</property>
                     <attributes>
