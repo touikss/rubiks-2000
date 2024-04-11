@@ -141,7 +141,7 @@ impl Gcube {
     ///
     pub fn new(_cube: Cube, window: &mut Window) -> Self {
         let mut _node = window.add_group();
-        let s = 1;
+        let s: i32 = 1;
         let mut _cublets = Vec::new();
 
         for i in -s..=s {
@@ -158,20 +158,29 @@ impl Gcube {
                     );
                     cublet.node.set_local_transformation(translation);
                     cublet.set_position((i + s) as usize, (j + s) as usize, (k + s) as usize);
+
+                    let (x, y, z) = cublet.position;
+
                     if k == s {
-                        cublet.back_face.set_color(1.0, 1.0, 0.0);
+                        let (r, g, b) = _cube.get_faces()[5][(y * 3 + z) as usize].to_rgb();
+                        cublet.back_face.set_color(r, g, b);
                     } else if k == -s {
-                        cublet.front_face.set_color(1.0, 1.0, 1.0)
+                        let (r, g, b) = _cube.get_faces()[0][(y * 3 + z) as usize].to_rgb();
+                        cublet.front_face.set_color(r, g, b);
                     }
                     if i == s {
-                        cublet.left_face.set_color(1.0, 0.0, 0.0)
+                        let (r, g, b) = _cube.get_faces()[2][(y * 3 + (2 - z)) as usize].to_rgb();
+                        cublet.left_face.set_color(r, g, b);
                     } else if i == -s {
-                        cublet.right_face.set_color(1.0, 0.5, 0.0)
+                        let (r, g, b) = _cube.get_faces()[4][(y * 3 + z) as usize].to_rgb();
+                        cublet.right_face.set_color(r, g, b);
                     }
                     if j == s {
-                        cublet.top_face.set_color(0.0, 0.0, 1.0)
+                        let (r, g, b) = _cube.get_faces()[1][((2 - z) * 3 + x) as usize].to_rgb();
+                        cublet.top_face.set_color(r, g, b);
                     } else if j == -s {
-                        cublet.bottom_face.set_color(0.0, 1.0, 0.0);
+                        let (r, g, b) = _cube.get_faces()[3][(z * 3 + y) as usize].to_rgb();
+                        cublet.bottom_face.set_color(r, g, b);
                     }
                     let rc_child = Rc::new(RefCell::new(cublet));
                     let child_node = Rc::clone(&rc_child).borrow().node.clone();
@@ -189,15 +198,20 @@ impl Gcube {
         }
     }
 
-    pub fn shuffle(&mut self, window: &mut Window, moves: u32, gtk_image: &mut gtk::Image,
-        camera: &mut dyn Camera,) {
+    pub fn shuffle(
+        &mut self,
+        window: &mut Window,
+        moves: u32,
+        gtk_image: &mut gtk::Image,
+        camera: &mut dyn Camera,
+    ) {
         let mut rng = rand::thread_rng();
 
         let mut prev = 0;
 
         for _ in 0..moves {
             let mut r: i32 = rng.gen_range(1..=6);
-            
+
             // not two times the same mv
             while (r - prev).abs() == 1 {
                 r = rng.gen_range(1..=6);
@@ -205,7 +219,12 @@ impl Gcube {
 
             prev = r;
 
-            let n: usize = rng.gen_range(0..self.cube.get_size());
+            let mut n: usize = rng.gen_range(0..2);
+
+            // not the middle layer
+            if n == 1 {
+                n = 2;
+            }
 
             let mov = match r {
                 1 => Move::H,
@@ -234,11 +253,9 @@ impl Gcube {
         mov: Move,
         n: usize,
         gtk_image: &mut gtk::Image,
-        camera: &mut dyn Camera, duration: f32
+        camera: &mut dyn Camera,
+        duration: f32,
     ) {
-        let pos = self.cublets[0].node.data().local_transformation();
-        dbg!(pos);
-
         let animation_duration = Duration::from_secs_f32(duration);
         let start_time = Instant::now();
         let mut prev = 0.0;
@@ -307,7 +324,7 @@ impl Gcube {
             if delta_sum > 1.0 {
                 delta = delta - (delta_sum - 1.0);
                 if delta < 0.0 {
-                    delta = 0.0; 
+                    delta = 0.0;
                 }
             }
 
@@ -350,57 +367,5 @@ impl Gcube {
                 }
             }
         }
-
-        let pos = self.cublets[0].node.data().local_transformation();
-        dbg!(pos);
     }
-
-    /// This function will highlight the xth vertical stripe of the cube
-    /// with a random color
-    pub fn dbg_position_x(&mut self, x: usize) {
-        let mut rng = rand::thread_rng();
-        let r: f32 = rng.gen_range(0.0..=1.0);
-        let g: f32 = rng.gen_range(0.0..=1.0);
-        let b: f32 = rng.gen_range(0.0..=1.0);
-        for i in 0..self.cublets.len() {
-            let cublet = self.cublets[i].borrow_mut();
-            if cublet.position.0 == x {
-                cublet.node.set_color(r, g, b);
-            }
-        }
-    }
-
-    /// This function will highlight the yth horizontal stripe of the cube
-    /// with a random color
-    pub fn dbg_position_y(&mut self, y: usize) {
-        let mut rng = rand::thread_rng();
-        let r: f32 = rng.gen_range(0.0..=1.0);
-        let g: f32 = rng.gen_range(0.0..=1.0);
-        let b: f32 = rng.gen_range(0.0..=1.0);
-        for i in 0..self.cublets.len() {
-            let cublet = self.cublets[i].borrow_mut();
-            if cublet.position.1 == y {
-                cublet.node.set_color(r, g, b);
-            }
-        }
-    }
-
-    /// This function will highlight the zth lateral stripe of the cube
-    /// with a random color
-    pub fn dbg_position_z(&mut self, z: usize) {
-        let mut rng = rand::thread_rng();
-        let r: f32 = rng.gen_range(0.0..=1.0);
-        let g: f32 = rng.gen_range(0.0..=1.0);
-        let b: f32 = rng.gen_range(0.0..=1.0);
-        for i in 0..self.cublets.len() {
-            let cublet = self.cublets[i].borrow_mut();
-            if cublet.position.2 == z {
-                cublet.node.set_color(r, g, b);
-            }
-        }
-    }
-}
-
-fn round(x: f32, precision: f32) -> f32 {
-    (x / precision).round() * precision
 }

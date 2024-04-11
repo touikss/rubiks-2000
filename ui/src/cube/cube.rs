@@ -14,18 +14,17 @@ pub enum Color {
 }
 
 impl Color {
-    fn pretty_print(&self) {
-        let code = match self {
-            Self::Blue => "\x1b[34m",
-            Self::White => "\x1b[37m",
-            Self::Green => "\x1b[32m",
-            Self::Red => "\x1b[31m",
-            Self::Orange => "\x1b[38;5;208m",
-            Self::Yellow => "\x1b[33m",
-            _ => "\x1b[30m",
+    pub fn to_rgb(&self) -> (f32, f32, f32){
+        let (r, g, b) = match self {
+            Color::Red => (1.0, 0.0, 0.0),
+            Color::Orange => (1.0, 0.5, 0.0),
+            Color::Blue => (0., 0., 1.0),
+            Color::Yellow => (1.0, 1.0, 0.0),
+            Color::Green => (0., 1., 0.),
+            Color::White => (1., 1., 1.),
+            Color::Empty => (0., 0., 0.),
         };
-        let reset_code = "\x1b[0m"; // Code pour réinitialiser la couleur à la couleur par défaut
-        print!("{}██{}", code, reset_code);
+        (r, g, b)
     }
 }
 
@@ -91,39 +90,8 @@ impl Cube {
         self.size
     }
 
-    /// This function draw the cube in the console
-    pub fn dbg(&self) {
-        println!();
-        for (j, case) in self.faces[1].iter().enumerate() {
-            if j % self.size == 0 {
-                println!();
-                let space = " ".repeat(self.size * 2);
-                print!("{}", space);
-            }
-            case.pretty_print();
-        }
-        println!();
-
-        for j in 0..self.size {
-            for f in [2, 0, 4, 5] {
-                for i in 0..self.size {
-                    self.faces[f][i + j * self.size].pretty_print();
-                }
-            }
-            println!();
-        }
-        for (j, case) in self.faces[3].iter().enumerate() {
-            if j % self.size == 0 {
-                if j != 0 {
-                    println!();
-                }
-                let space = " ".repeat(self.size * 2);
-                print!("{}", space);
-            }
-            case.pretty_print();
-        }
-
-        println!();
+    pub fn get_faces(&self) -> &Vec<Vec<Color>>{
+        &self.faces
     }
 
     /// This function return a Vector of Color composing a certain colon on a face

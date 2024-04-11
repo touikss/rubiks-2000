@@ -487,7 +487,8 @@ fn loop_3d(builder: &Builder) {
         Point::new(0., 0., 0.),
     );
 
-    let cube = Cube::new_filled(3);
+    let mut cube = Cube::new_filled(3);
+    cube.move_v(0);
     let mut gcube = Gcube::new(cube, &mut window_3d);
 
     let mut image: gtk::Image = builder
@@ -622,6 +623,12 @@ fn main() {
     let gtk_window: gtk::Window = builder.object("main_window").expect("No window found");
     gtk_window.maximize();
     gtk_window.show_all();
+
+    gtk::Settings::default()
+        .expect("Failed to get GTK settings")
+        .set_gtk_application_prefer_dark_theme(true);
+
+    
 
     init_gtk_buttons(&builder);
     loop_3d(&builder);
