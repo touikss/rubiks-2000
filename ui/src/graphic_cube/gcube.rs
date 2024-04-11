@@ -7,7 +7,6 @@ use std::{
 };
 
 use crate::cube::cube::Cube;
-use gtk::{cairo::ffi::STATUS_INVALID_DASH, prelude::ImageExt};
 use kiss3d::{
     camera::Camera,
     nalgebra::{Isometry3, Translation3, UnitQuaternion},
@@ -20,7 +19,8 @@ use super::gtk_binding::*;
 
 const SIZE: f32 = 1.0;
 const OFFSET: f32 = 0.2;
-const ANIMATION_TIME: f32 = 0.5;
+pub const ANIMATION_TIME: f32 = 0.4;
+const SHUFFLE_ANIMATION_TIME: f32 = 0.1;
 
 #[derive(PartialEq)]
 pub enum Move {
@@ -157,11 +157,7 @@ impl Gcube {
                         fz * OFFSET + fz,
                     );
                     cublet.node.set_local_transformation(translation);
-                    cublet.set_position(
-                        (i + s) as usize,
-                        (j + s) as usize,
-                        (k + s) as usize,
-                    );
+                    cublet.set_position((i + s) as usize, (j + s) as usize, (k + s) as usize);
                     if k == s {
                         cublet.back_face.set_color(1.0, 1.0, 0.0);
                     } else if k == -s {
@@ -193,11 +189,22 @@ impl Gcube {
         }
     }
 
-    pub fn shuffle(&mut self, window: &mut Window, moves: u32) {
+    pub fn shuffle(&mut self, window: &mut Window, moves: u32, gtk_image: &mut gtk::Image,
+        camera: &mut dyn Camera,) {
         let mut rng = rand::thread_rng();
 
+        let mut prev = 0;
+
         for _ in 0..moves {
-            let r: u32 = rng.gen_range(1..=6);
+            let mut r: i32 = rng.gen_range(1..=6);
+            
+            // not two times the same mv
+            while (r - prev).abs() == 1 {
+                r = rng.gen_range(1..=6);
+            }
+
+            prev = r;
+
             let n: usize = rng.gen_range(0..self.cube.get_size());
 
             let mov = match r {
@@ -208,28 +215,8 @@ impl Gcube {
                 5 => Move::V,
                 _ => Move::Vp,
             };
-            todo!()
-            //self.apply_move(window, mov, n);
+            self.apply_move(window, mov, n, gtk_image, camera, SHUFFLE_ANIMATION_TIME);
         }
-    }
-
-    fn adjust_cublet_positions(&mut self) {
-        let precision = 0.5;
-        for i in 0..self.cublets.len() {
-            let cublet = self.cublets[i].borrow_mut();
-            /*let x = cublet.node.data().local_transformation().translation.x;
-            let y = cublet.node.data().local_transformation().translation.y;
-            let z = cublet.node.data().local_transformation().translation.z;
-            let translation = Translation3::new(
-                (x / precision).round() * precision,
-                (y / precision).round() * precision,
-                (z / precision).round() * precision,
-            );
-            cublet.node.set_local_translation(translation);*/
-        }
-
-        let pos_adjusted = self.cublets[0].node.data().local_transformation();
-        dbg!(pos_adjusted);
     }
 
     /// This function make the graphic cube execute move with animation
@@ -247,13 +234,12 @@ impl Gcube {
         mov: Move,
         n: usize,
         gtk_image: &mut gtk::Image,
-        camera: &mut dyn Camera,
+        camera: &mut dyn Camera, duration: f32
     ) {
-
         let pos = self.cublets[0].node.data().local_transformation();
         dbg!(pos);
 
-        let animation_duration = Duration::from_secs_f32(ANIMATION_TIME);
+        let animation_duration = Duration::from_secs_f32(duration);
         let start_time = Instant::now();
         let mut prev = 0.0;
         let s = self.cube.get_size() - 1;
@@ -307,13 +293,24 @@ impl Gcube {
             f_v_move
         };
 
+        let mut delta_sum = 0.;
+
         // Animation loop
         while window.render_with_camera(camera) {
             update_gtk_image(window, gtk_image);
 
             let elapsed_time = start_time.elapsed();
-            let delta = (elapsed_time.as_secs_f32() - prev) / animation_duration.as_secs_f32();
+            let mut delta = (elapsed_time.as_secs_f32() - prev) / animation_duration.as_secs_f32();
+            delta_sum += delta;
             prev = elapsed_time.as_secs_f32();
+
+            if delta_sum > 1.0 {
+                delta = delta - (delta_sum - 1.0);
+                if delta < 0.0 {
+                    delta = 0.0; 
+                }
+            }
+
             let rotation_angle = delta * std::f32::consts::FRAC_PI_2;
             let rotation_quaternion = UnitQuaternion::from_euler_angles(
                 rotation_angle * roll_fact,
@@ -330,7 +327,6 @@ impl Gcube {
             }
 
             if elapsed_time >= animation_duration {
-                self.adjust_cublet_positions();
                 break;
             }
         }
@@ -403,4 +399,8 @@ impl Gcube {
             }
         }
     }
+}
+
+fn round(x: f32, precision: f32) -> f32 {
+    (x / precision).round() * precision
 }

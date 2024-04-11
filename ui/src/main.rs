@@ -19,7 +19,7 @@ mod graphic_cube;
 
 use cube::cube::Cube;
 use graphic_cube::{
-    gcube::{Gcube, Move::*},
+    gcube::{Gcube, Move::*, ANIMATION_TIME},
     gtk_binding::update_gtk_image,
 };
 
@@ -544,46 +544,54 @@ fn loop_3d(builder: &Builder) {
         *is_d_pressed_clone.borrow_mut() = true;
     });
 
+    let is_shuffle_pressed = Rc::new(RefCell::new(false));
+    let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
+    let main_shuffle_button: gtk::Button = builder.object("main_shuffle_button").expect("no shuffle button found");
+    main_shuffle_button.connect_clicked(move |_| {
+        *is_shuffle_pressed_clone.borrow_mut() = true;
+    });
+
     loop {
+        
+        let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
+        if *is_shuffle_pressed_clone.borrow_mut() {
+            gcube.shuffle(&mut window_3d, 40, &mut image, &mut camera);
+            *is_shuffle_pressed_clone.borrow_mut() = false;
+        }
+        
         let is_f_pressed_clone = Rc::clone(&is_f_pressed);
         if *is_f_pressed_clone.borrow_mut() {
-            println!("test");
-            gcube.apply_move(&mut window_3d, L, 0, &mut image, &mut camera);
+            gcube.apply_move(&mut window_3d, L, 0, &mut image, &mut camera, ANIMATION_TIME);
             *is_f_pressed_clone.borrow_mut() = false;
         }
 
         let is_b_pressed_clone = Rc::clone(&is_b_pressed);
         if *is_b_pressed_clone.borrow_mut() {
-            println!("test");
-            gcube.apply_move(&mut window_3d, L, 2, &mut image, &mut camera);
+            gcube.apply_move(&mut window_3d, L, 2, &mut image, &mut camera, ANIMATION_TIME);
             *is_b_pressed_clone.borrow_mut() = false;
         }
 
         let is_u_pressed_clone = Rc::clone(&is_u_pressed);
         if *is_u_pressed_clone.borrow_mut() {
-            println!("test");
-            gcube.apply_move(&mut window_3d, H, 2, &mut image, &mut camera);
+            gcube.apply_move(&mut window_3d, H, 2, &mut image, &mut camera, ANIMATION_TIME);
             *is_u_pressed_clone.borrow_mut() = false;
         }
 
         let is_d_pressed_clone = Rc::clone(&is_d_pressed);
         if *is_d_pressed_clone.borrow_mut() {
-            println!("test");
-            gcube.apply_move(&mut window_3d, H, 0, &mut image, &mut camera);
+            gcube.apply_move(&mut window_3d, H, 0, &mut image, &mut camera, ANIMATION_TIME);
             *is_d_pressed_clone.borrow_mut() = false;
         }
 
         let is_l_pressed_clone = Rc::clone(&is_l_pressed);
         if *is_l_pressed_clone.borrow_mut() {
-            println!("test");
-            gcube.apply_move(&mut window_3d, V, 2, &mut image, &mut camera);
+            gcube.apply_move(&mut window_3d, V, 2, &mut image, &mut camera, ANIMATION_TIME);
             *is_l_pressed_clone.borrow_mut() = false;
         }
 
         let is_r_pressed_clone = Rc::clone(&is_r_pressed);
         if *is_r_pressed_clone.borrow_mut() {
-            println!("test");
-            gcube.apply_move(&mut window_3d, V, 0, &mut image, &mut camera);
+            gcube.apply_move(&mut window_3d, V, 0, &mut image, &mut camera, ANIMATION_TIME);
             *is_r_pressed_clone.borrow_mut() = false;
         }
 

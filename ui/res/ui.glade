@@ -414,10 +414,11 @@
                             <property name="spacing">10</property>
                             <child>
                               <object class="GtkAlignment">
+                                <property name="name">main_shuffle_button</property>
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <child>
-                                  <object class="GtkButton">
+                                  <object class="GtkButton" id="main_shuffle_button">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
                                     <property name="receives-default">True</property>
