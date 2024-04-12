@@ -7,6 +7,7 @@ use std::{
 };
 
 use crate::cube::cube::Cube;
+use gtk::gdk::keys::constants::lstroke;
 use kiss3d::{
     camera::Camera,
     nalgebra::{Isometry3, Translation3, UnitQuaternion},
@@ -22,7 +23,7 @@ const OFFSET: f32 = 0.2;
 pub const ANIMATION_TIME: f32 = 0.4;
 const SHUFFLE_ANIMATION_TIME: f32 = 0.1;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Move {
     V,
     Vp,
@@ -30,6 +31,18 @@ pub enum Move {
     Hp,
     L,
     Lp,
+}
+
+pub fn inv_move(mv: Move) -> Move {
+    let res = match mv {
+        Move::V => Move::Vp,
+        Move::Vp => Move::V,
+        Move::H => Move::Hp,
+        Move::Hp => Move::H,
+        Move::L => Move::Lp,
+        _ => Move::L
+    };
+    res
 }
 
 #[derive(Clone)]
@@ -209,8 +222,7 @@ impl Gcube {
 
         for i in 0..self.cublets.len() {
             let cublet = self.cublets[i].borrow_mut();
-            cublet
-                .node.set_visible(false);
+            cublet.node.set_visible(false);
         }
 
         for i in -s..=s {
@@ -234,8 +246,7 @@ impl Gcube {
                         let (r, g, b) = cube.get_faces()[5][((2 - y) * 3 + (x)) as usize].to_rgb();
                         cublet.back_face.set_color(r, g, b);
                     } else if k == -s {
-                        let (r, g, b) =
-                            cube.get_faces()[0][((2 - y) * 3 + (x)) as usize].to_rgb();
+                        let (r, g, b) = cube.get_faces()[0][((2 - y) * 3 + (x)) as usize].to_rgb();
                         cublet.front_face.set_color(r, g, b);
                     }
                     if i == s {

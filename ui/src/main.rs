@@ -3,9 +3,11 @@ extern crate kiss3d;
 extern crate nalgebra as na;
 
 use glib::Propagation;
+use graphic_cube::gcube::{inv_move, Move};
 use gtk::atk::CoordType;
 use gtk::{gdk_pixbuf, prelude::*, Builder, Button, CssProvider, Label};
 
+use kiss3d::camera::Camera;
 use rscam::Config;
 use std::env;
 use std::rc::Rc;
@@ -25,10 +27,10 @@ use kiss3d::{camera::FirstPerson, light::Light, ncollide3d::math::Point, window:
 
 const TIMER_ID: &str = "timer_view";
 const MENU_ID: &str = "menu_view";
-const SOLVER_ID: &str = "main_view";
+const MAIN_ID: &str = "main_view";
 const CAMERA_ID: &str = "camera_view";
 const SOLUTION_VIEW: &str = "solution_view";
-const VIEWS_ID: [&str; 5] = [TIMER_ID, MENU_ID, SOLVER_ID, CAMERA_ID, SOLUTION_VIEW];
+const VIEWS_ID: [&str; 5] = [TIMER_ID, MENU_ID, MAIN_ID, CAMERA_ID, SOLUTION_VIEW];
 
 const CAMERA_WIDTH: u32 = 640;
 const CAMERA_HEIGHT: u32 = 480; //640
@@ -267,7 +269,7 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
             let is_back_pressed_clone = Rc::clone(&is_back_pressed);
             let is_next_pressed_clone = Rc::clone(&is_next_pressed);
             if *is_back_pressed_clone.borrow_mut() || *is_next_pressed_clone.borrow_mut() > 11 {
-                show_view(builder, SOLVER_ID);
+                show_view(builder, MAIN_ID);
                 camera.stop().unwrap();
                 break;
             }
@@ -373,7 +375,7 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
         let is_back_pressed_clone = Rc::clone(&is_back_pressed);
         let is_next_pressed_clone = Rc::clone(&is_next_pressed);
         if *is_back_pressed_clone.borrow_mut() || *is_next_pressed_clone.borrow_mut() > 11 {
-            show_view(builder, SOLVER_ID);
+            show_view(builder, MAIN_ID);
             camera.stop().unwrap();
             break;
         }
@@ -425,7 +427,7 @@ fn init_gtk_buttons(builder: &Builder) {
         .expect("No menu_solver_button found");
     let build_clone = builder.clone();
     menu_solver_button.connect_clicked(move |_| {
-        show_view(&build_clone, SOLVER_ID);
+        show_view(&build_clone, MAIN_ID);
     });
 
     // main view buttons
@@ -648,8 +650,8 @@ fn main_loop(builder: &Builder) {
     });
 
     // shuffle is pressed
-    let is_solve_pressed = Rc::new(RefCell::new(false));
-    let is_shuffle_pressed_clone = Rc::clone(&is_solve_pressed);
+    let is_shuffle_pressed = Rc::new(RefCell::new(false));
+    let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
     let main_shuffle_button: gtk::Button = builder
         .object("main_shuffle_button")
         .expect("no shuffle button found");
@@ -663,7 +665,7 @@ fn main_loop(builder: &Builder) {
     //3D loop
     loop {
         // shuffle
-        let is_shuffle_pressed_clone = Rc::clone(&is_solve_pressed);
+        let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
         if *is_shuffle_pressed_clone.borrow_mut() {
             gcube.shuffle(&mut window_3d, 40, &mut image, &mut camera);
             *is_shuffle_pressed_clone.borrow_mut() = false;
@@ -672,9 +674,9 @@ fn main_loop(builder: &Builder) {
         // solve
         let is_solve_pressed_clone = Rc::clone(&is_solve_pressed);
         if *is_solve_pressed_clone.borrow_mut() {
-            solution_loop(&builder, &mut window_3d)
-           
-           // *is_solve_pressed_clone.borrow_mut() = false;
+            let mv = vec![(H,1), (L,0)];
+            solution_loop(&builder, &mut window_3d, &mut gcube, mv);
+            *is_solve_pressed_clone.borrow_mut() = false;
         }
 
         // camera captured
@@ -788,9 +790,137 @@ fn main_loop(builder: &Builder) {
     }
 }
 
-fn solution_loop(builder: &Builder, window_3d: &mut Window) {
-    
+fn solution_loop(
+    builder: &Builder,
+    mut window_3d: &mut Window,
+    gcube: &mut Gcube,
+    moves: Vec<(Move, usize)>,
+) {
+    show_view(builder, SOLUTION_VIEW);
 
+    let mut image: gtk::Image = builder
+        .object("solution_3d_image")
+        .expect("no solution 3D image found");
+
+    // window quit event
+    let gtk_window: gtk::Window = builder.object("main_window").expect("no main window found");
+
+    let gtk_exited = Rc::new(RefCell::new(false));
+    let gtk_exited_clone = gtk_exited.clone();
+    gtk_window.connect_delete_event(move |_, _| {
+        *gtk_exited_clone.borrow_mut() = true;
+        gtk::glib::Propagation::Stop
+    });
+
+    // z pr tourner de gauche à droite
+    // la cam regarde en direction du cube
+    // 5, 5, 7
+    let mut camera = FirstPerson::new(
+        Point::new(-5. * 0.8, 5. * 0.8, -7. * 0.8),
+        Point::new(0., 0., 0.),
+    );
+
+    // back is pressed
+    let is_back_pressed = Rc::new(RefCell::new(false));
+    let is_back_pressed_clone = Rc::clone(&is_back_pressed);
+    let solve_back_button: gtk::Button = builder
+        .object("solve_back_button")
+        .expect("no next button found");
+    solve_back_button.connect_clicked(move |_| {
+        *is_back_pressed_clone.borrow_mut() = true;
+    });
+
+    // next is pressed
+    let is_next_pressed = Rc::new(RefCell::new(false));
+    let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+    let solve_next_button: gtk::Button = builder
+        .object("solve_next_button")
+        .expect("no next button found");
+    solve_next_button.connect_clicked(move |_| {
+        *is_next_pressed_clone.borrow_mut() = true;
+    });
+
+    // prev is pressed
+    let is_prev_pressed = Rc::new(RefCell::new(false));
+    let is_prev_pressed_clone = Rc::clone(&is_prev_pressed);
+    let solve_prev_button: gtk::Button = builder
+        .object("solve_prev_button")
+        .expect("no prev button found");
+    solve_prev_button.connect_clicked(move |_| {
+        *is_prev_pressed_clone.borrow_mut() = true;
+    });
+
+    // to controll 3D render frame rate
+    let mut last_render_time = Instant::now();
+
+    // step count
+    let step_count = Rc::new(RefCell::new(0));
+
+    //3D loop
+    loop {
+        // back
+        let is_back_pressed_clone = Rc::clone(&is_back_pressed);
+        if *is_back_pressed_clone.borrow_mut() {
+            show_view(builder, MAIN_ID);
+            break;
+        }
+
+        // next
+        let is_next_pressed_clone = Rc::clone(&is_next_pressed);
+        let step_count_clone = Rc::clone(&step_count);
+        if *is_next_pressed_clone.borrow_mut() {
+            if *step_count_clone.borrow_mut() < moves.len() {
+                *step_count_clone.borrow_mut() += 1;
+                let (mov, n) = &moves[ *step_count_clone.borrow_mut() - 1];
+                gcube.apply_move(
+                    &mut window_3d,
+                    *mov,
+                    *n,
+                    &mut image,
+                    &mut camera,
+                    ANIMATION_TIME,
+                );
+            }
+            *is_next_pressed_clone.borrow_mut() = false;
+        }
+
+        // prev
+        let is_prev_pressed_clone = Rc::clone(&is_prev_pressed);
+        let step_count_clone = Rc::clone(&step_count);
+        if *is_prev_pressed_clone.borrow_mut() {
+            if *step_count_clone.borrow_mut() > 0 {
+                *step_count_clone.borrow_mut() -= 1;
+                let (mov, n) = moves[ *step_count_clone.borrow_mut()];
+                let mov = inv_move(mov);
+                gcube.apply_move(
+                    &mut window_3d,
+                    mov,
+                    n,
+                    &mut image,
+                    &mut camera,
+                    ANIMATION_TIME,
+                );
+            }
+            *is_prev_pressed_clone.borrow_mut() = false;
+        }
+
+        while gtk::events_pending() {
+            gtk::main_iteration();
+        }
+
+        // Render kiss3D view
+        // pas trop souvent, sinon les ordis fragiles de timothé et de arthur vont pas le surpporter
+        if Instant::now().duration_since(last_render_time) >= Duration::from_millis(RENDER_RATE) {
+            last_render_time = Instant::now();
+            let gtk_exited_clone = Rc::clone(&gtk_exited);
+            if !window_3d.render_with_camera(&mut camera) || *gtk_exited_clone.borrow() {
+                break;
+            }
+
+            // link between kiss3D and gtk
+            update_gtk_image(&mut window_3d, &mut image);
+        }
+    }
 }
 
 fn opensite() {
