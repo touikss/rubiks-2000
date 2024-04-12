@@ -32,7 +32,7 @@ const VIEWS_ID: [&str; 5] = [TIMER_ID, MENU_ID, SOLVER_ID, CAMERA_ID, SOLUTION_V
 
 const CAMERA_WIDTH: u32 = 640;
 const CAMERA_HEIGHT: u32 = 480; //640
-const RENDER_RATE: f32 = 1./30.;
+const RENDER_RATE: u64 = 500;
 
 const INFO_STRINGS: [&str; 11] = [
     "Modify your capture (click on facelets you want to change)",
@@ -744,7 +744,8 @@ fn loop_3d(builder: &Builder) {
 
         // Render kiss3D view
         // pas trop souvent, sinon les ordis fragiles de timothé et de arthur vont pas le surpporter
-        if Instant::now().duration_since(last_render_time) >= Duration::from_secs_f32(RENDER_RATE) {
+        if Instant::now().duration_since(last_render_time) >= Duration::from_millis(RENDER_RATE) {
+            last_render_time = Instant::now();
             if !window_3d.render_with_camera(&mut camera) {
                 break;
             }
