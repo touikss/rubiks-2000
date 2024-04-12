@@ -9,7 +9,7 @@ use gtk::{gdk_pixbuf, prelude::*, Builder, Button, CssProvider, Label};
 use rscam::Config;
 use std::env;
 use std::rc::Rc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use std::{cell::RefCell, process::Command};
 use ui::imagery::{self, color::ColorType};
 mod cube;
@@ -31,7 +31,8 @@ const SOLUTION_VIEW: &str = "solution_view";
 const VIEWS_ID: [&str; 5] = [TIMER_ID, MENU_ID, SOLVER_ID, CAMERA_ID, SOLUTION_VIEW];
 
 const CAMERA_WIDTH: u32 = 640;
-const CAMERA_HEIGHT: u32 = 480;//640
+const CAMERA_HEIGHT: u32 = 480; //640
+const RENDER_RATE: f32 = 1./30.;
 
 const INFO_STRINGS: [&str; 11] = [
     "Modify your capture (click on facelets you want to change)",
@@ -260,7 +261,6 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
 
     // Start loop for capturing and displaying images
     for _ in 0..6 {
-
         // first loop capturing the colors
         loop {
             // quit
@@ -635,6 +635,8 @@ fn loop_3d(builder: &Builder) {
         *is_shuffle_pressed_clone.borrow_mut() = true;
     });
 
+    let mut last_render_time = Instant::now();
+
     //3D loop
     loop {
         // shuffle
@@ -736,16 +738,18 @@ fn loop_3d(builder: &Builder) {
             *is_r_pressed_clone.borrow_mut() = false;
         }
 
-        // link between kiss3D and gtk
-        //update_gtk_image(&mut window_3d, &mut image);
-
         while gtk::events_pending() {
             gtk::main_iteration();
         }
 
         // Render kiss3D view
-        if !window_3d.render_with_camera(&mut camera) {
-            break;
+        // pas trop souvent, sinon les ordis fragiles de timothé et de arthur vont pas le surpporter
+        if Instant::now().duration_since(last_render_time) >= Duration::from_secs_f32(RENDER_RATE) {
+            if !window_3d.render_with_camera(&mut camera) {
+                break;
+            }
+            // link between kiss3D and gtk
+            update_gtk_image(&mut window_3d, &mut image);
         }
     }
 }
