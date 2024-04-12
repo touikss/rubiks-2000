@@ -401,12 +401,14 @@ fn init_gtk_buttons(builder: &Builder) {
         opensite();
     });
 
+    let window: gtk::Window = builder.object("main_window").expect("no main window found");
+
     // Menu buttons
     let menu_quit_button: gtk::Button = builder
         .object("menu_quit_button")
         .expect("No menu_quit_button found");
-    menu_quit_button.connect_clicked(|_| {
-        gtk::main_quit();
+    menu_quit_button.connect_clicked(move |_| {
+        window.close();
     });
 
     let menu_timer_button: gtk::Button = builder
@@ -508,9 +510,8 @@ fn open_timer(builder: &Builder) {
 
 fn loop_3d(builder: &Builder) {
     // Créer la fenêtre kiss3D.
-    let mut window_3d = Window::new("Rubik's 2000");
+    let mut window_3d = Window::new_hidden("Rubik's 2000");
     window_3d.set_light(Light::Absolute(Point::new(0., 0., 0.)));
-    window_3d.hide();
 
     // Set background color of 3D rendering
     let main_window: gtk::Window = builder.object("main_window").expect("no maon window");
@@ -533,6 +534,7 @@ fn loop_3d(builder: &Builder) {
         Point::new(0., 0., 0.),
     );
 
+    // le cube à link avec la caméra
     let cube = Rc::new(RefCell::new(Cube::new_filled(3)));
 
     let cube_clone = Rc::clone(&cube);
@@ -541,6 +543,15 @@ fn loop_3d(builder: &Builder) {
     let mut image: gtk::Image = builder
         .object("main_3d_image")
         .expect("no menu image found");
+
+    let window: gtk::Window = builder.object("main_window").expect("no main window found");
+
+    let gtk_exited = Rc::new(RefCell::new(false));
+    let gtk_exited_clone = gtk_exited.clone();
+    window.connect_delete_event(move |_, _| {
+        *gtk_exited_clone.borrow_mut() = true; // Indiquer que GTK a quitté
+        gtk::glib::Propagation::Stop
+    });
 
     // a cube is provided by camera view
     let is_camera_captured = Rc::new(RefCell::new(false));
@@ -747,9 +758,11 @@ fn loop_3d(builder: &Builder) {
         // pas trop souvent, sinon les ordis fragiles de timothé et de arthur vont pas le surpporter
         if Instant::now().duration_since(last_render_time) >= Duration::from_millis(RENDER_RATE) {
             last_render_time = Instant::now();
-            if !window_3d.render_with_camera(&mut camera) {
+            let gtk_exited_clone = Rc::clone(&gtk_exited);
+            if !window_3d.render_with_camera(&mut camera) || *gtk_exited_clone.borrow() {
                 break;
             }
+
             // link between kiss3D and gtk
             update_gtk_image(&mut window_3d, &mut image);
         }
@@ -786,11 +799,6 @@ fn main() {
     gtk_window.show_all();
 
     init_gtk_buttons(&builder);
-    //loop_3d(&builder);
 
-    loop {
-        while gtk::events_pending() {
-            gtk::main_iteration();
-        }
-    }
+    loop_3d(&builder);
 }
