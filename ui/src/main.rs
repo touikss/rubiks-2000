@@ -616,6 +616,16 @@ fn loop_3d(builder: &Builder) {
     });
 
     // shuffle is pressed
+    let is_back_pressed = Rc::new(RefCell::new(false));
+    let is_shuffle_pressed_clone = Rc::clone(&is_back_pressed);
+    let main_shuffle_button: gtk::Button = builder
+        .object("main_shuffle_button")
+        .expect("no shuffle button found");
+    main_shuffle_button.connect_clicked(move |_| {
+        *is_shuffle_pressed_clone.borrow_mut() = true;
+    });
+
+    // shuffle is pressed
     let is_shuffle_pressed = Rc::new(RefCell::new(false));
     let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
     let main_shuffle_button: gtk::Button = builder
@@ -728,6 +738,10 @@ fn loop_3d(builder: &Builder) {
 
         // link between kiss3D and gtk
         update_gtk_image(&mut window_3d, &mut image);
+
+        while gtk::events_pending() {
+            gtk::main_iteration();
+        }
 
         // Render kiss3D view
         if !window_3d.render_with_camera(&mut camera) {
