@@ -737,7 +737,7 @@ fn loop_3d(builder: &Builder) {
         }
 
         // link between kiss3D and gtk
-        update_gtk_image(&mut window_3d, &mut image);
+        //update_gtk_image(&mut window_3d, &mut image);
 
         while gtk::events_pending() {
             gtk::main_iteration();
