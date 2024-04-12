@@ -1077,7 +1077,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkImage">
+                  <object class="GtkImage" id="solution_render_image">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="stock">gtk-missing-image</property>

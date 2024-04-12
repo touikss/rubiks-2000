@@ -508,7 +508,7 @@ fn open_timer(builder: &Builder) {
     }
 }
 
-fn loop_3d(builder: &Builder) {
+fn main_loop(builder: &Builder) {
     // Créer la fenêtre kiss3D.
     let mut window_3d = Window::new_hidden("Rubik's 2000");
     window_3d.set_light(Light::Absolute(Point::new(0., 0., 0.)));
@@ -637,9 +637,19 @@ fn loop_3d(builder: &Builder) {
         *is_shuffle_pressed_clone.borrow_mut() = true;
     });
 
+    // solve is pressed
+    let is_solve_pressed = Rc::new(RefCell::new(false));
+    let is_solve_pressed_clone = Rc::clone(&is_solve_pressed);
+    let main_solve_button: gtk::Button = builder
+        .object("main_solve_button")
+        .expect("no solve button found");
+    main_solve_button.connect_clicked(move |_| {
+        *is_solve_pressed_clone.borrow_mut() = true;
+    });
+
     // shuffle is pressed
-    let is_shuffle_pressed = Rc::new(RefCell::new(false));
-    let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
+    let is_solve_pressed = Rc::new(RefCell::new(false));
+    let is_shuffle_pressed_clone = Rc::clone(&is_solve_pressed);
     let main_shuffle_button: gtk::Button = builder
         .object("main_shuffle_button")
         .expect("no shuffle button found");
@@ -647,15 +657,24 @@ fn loop_3d(builder: &Builder) {
         *is_shuffle_pressed_clone.borrow_mut() = true;
     });
 
+    // to controll 3D render frame rate
     let mut last_render_time = Instant::now();
 
     //3D loop
     loop {
         // shuffle
-        let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
+        let is_shuffle_pressed_clone = Rc::clone(&is_solve_pressed);
         if *is_shuffle_pressed_clone.borrow_mut() {
             gcube.shuffle(&mut window_3d, 40, &mut image, &mut camera);
             *is_shuffle_pressed_clone.borrow_mut() = false;
+        }
+
+        // solve
+        let is_solve_pressed_clone = Rc::clone(&is_solve_pressed);
+        if *is_solve_pressed_clone.borrow_mut() {
+            solution_loop(&builder, &mut window_3d)
+           
+           // *is_solve_pressed_clone.borrow_mut() = false;
         }
 
         // camera captured
@@ -769,6 +788,11 @@ fn loop_3d(builder: &Builder) {
     }
 }
 
+fn solution_loop(builder: &Builder, window_3d: &mut Window) {
+    
+
+}
+
 fn opensite() {
     let local_site_folder = "../site-web/index.html";
     let _ = Command::new("xdg-open").arg(local_site_folder).output();
@@ -800,5 +824,5 @@ fn main() {
 
     init_gtk_buttons(&builder);
 
-    loop_3d(&builder);
+    main_loop(&builder);
 }
