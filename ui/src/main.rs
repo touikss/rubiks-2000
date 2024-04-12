@@ -508,8 +508,9 @@ fn open_timer(builder: &Builder) {
 
 fn loop_3d(builder: &Builder) {
     // Créer la fenêtre kiss3D.
-    let mut window_3d = Window::new_hidden("Rubik's 2000");
+    let mut window_3d = Window::new("Rubik's 2000");
     window_3d.set_light(Light::Absolute(Point::new(0., 0., 0.)));
+    window_3d.hide();
 
     // Set background color of 3D rendering
     let main_window: gtk::Window = builder.object("main_window").expect("no maon window");
@@ -785,5 +786,11 @@ fn main() {
     gtk_window.show_all();
 
     init_gtk_buttons(&builder);
-    loop_3d(&builder);
+    //loop_3d(&builder);
+
+    loop {
+        while gtk::events_pending() {
+            gtk::main_iteration();
+        }
+    }
 }
