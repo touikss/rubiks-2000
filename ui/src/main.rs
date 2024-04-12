@@ -508,7 +508,7 @@ fn open_timer(builder: &Builder) {
 
 fn loop_3d(builder: &Builder) {
     // Créer la fenêtre kiss3D.
-    let mut window_3d = Window::new("Rubik's 2000");
+    let mut window_3d = Window::new_hidden("Rubik's 2000");
     window_3d.set_light(Light::Absolute(Point::new(0., 0., 0.)));
 
     // Set background color of 3D rendering
