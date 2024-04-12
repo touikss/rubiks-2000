@@ -31,7 +31,7 @@ const SOLUTION_VIEW: &str = "solution_view";
 const VIEWS_ID: [&str; 5] = [TIMER_ID, MENU_ID, SOLVER_ID, CAMERA_ID, SOLUTION_VIEW];
 
 const CAMERA_WIDTH: u32 = 640;
-const CAMERA_HEIGHT: u32 = 640;
+const CAMERA_HEIGHT: u32 = 480;//640
 
 const INFO_STRINGS: [&str; 11] = [
     "Modify your capture (click on facelets you want to change)",
