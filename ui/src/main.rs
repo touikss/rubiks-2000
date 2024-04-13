@@ -33,8 +33,9 @@ const TIMER_ID: &str = "timer_view";
 const MENU_ID: &str = "menu_view";
 const MAIN_ID: &str = "main_view";
 const CAMERA_ID: &str = "camera_view";
-const SOLUTION_VIEW: &str = "solution_view";
-const VIEWS_ID: [&str; 5] = [TIMER_ID, MENU_ID, MAIN_ID, CAMERA_ID, SOLUTION_VIEW];
+const SOLUTION_ID: &str = "solution_view";
+const HELP_ID: &str = "help_view";
+const VIEWS_ID: [&str; 6] = [TIMER_ID, MENU_ID, MAIN_ID, CAMERA_ID, SOLUTION_ID, HELP_ID];
 // used to switch face during camera detection
 const SWITCH_FACE_CAMERA: [usize; 6] = [0, 2, 5, 4, 1, 3];
 const SENSITIVITY: f32 = 10.;
@@ -454,6 +455,22 @@ fn init_gtk_buttons(builder: &Builder) {
     main_back_button.connect_clicked(move |_| {
         show_view(&build_clone, MENU_ID);
     });
+
+    let main_help_button: gtk::Button =
+        builder.object("main_help_button").expect("No button found");
+    let build_clone = builder.clone();
+    main_help_button.connect_clicked(move |_| {
+        show_view(&build_clone, HELP_ID);
+    });
+
+    // help view buttons
+    let help_back_button: gtk::Button =
+        builder.object("help_back_button").expect("No button found");
+    let build_clone = builder.clone();
+    help_back_button.connect_clicked(move |_| {
+        show_view(&build_clone, MAIN_ID);
+    });
+
 }
 
 // open timer view
@@ -899,7 +916,7 @@ fn solution_loop(
     gcube: &mut Gcube,
     moves: Vec<(Move, usize)>,
 ) {
-    show_view(builder, SOLUTION_VIEW);
+    show_view(builder, SOLUTION_ID);
 
     let mut image: gtk::Image = builder
         .object("solution_3d_image")

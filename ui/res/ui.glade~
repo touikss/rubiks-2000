@@ -2,6 +2,11 @@
 <!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.24"/>
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="upper">100</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">10</property>
+  </object>
   <object class="GtkImage" id="back_camera">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -18,15 +23,36 @@
     <property name="pixbuf">camera.png</property>
     <property name="use-fallback">True</property>
   </object>
+  <object class="GtkImage" id="camera1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">camera.png</property>
+    <property name="use-fallback">True</property>
+  </object>
   <object class="GtkImage" id="clock">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="pixbuf">clock.png</property>
   </object>
+  <object class="GtkImage" id="cross">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">back_rev.png</property>
+  </object>
   <object class="GtkImage" id="cube">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="pixbuf">cube.png</property>
+  </object>
+  <object class="GtkImage" id="cube1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">cube.png</property>
+  </object>
+  <object class="GtkImage" id="help">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">help.png</property>
   </object>
   <object class="GtkImage" id="home">
     <property name="visible">True</property>
@@ -39,6 +65,11 @@
     <property name="stock">gtk-missing-image</property>
   </object>
   <object class="GtkImage" id="image2">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">undo.png</property>
+  </object>
+  <object class="GtkImage" id="image3">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="pixbuf">undo.png</property>
@@ -73,6 +104,11 @@
     <property name="can-focus">False</property>
     <property name="pixbuf">search.png</property>
   </object>
+  <object class="GtkImage" id="search1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">search.png</property>
+  </object>
   <object class="GtkImage" id="shuffle">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -82,6 +118,11 @@
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="pixbuf">undo.png</property>
+  </object>
+  <object class="GtkImage" id="shuffle2">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">shuffle.png</property>
   </object>
   <object class="GtkImage" id="timer_menu">
     <property name="visible">True</property>
@@ -102,6 +143,241 @@
         <property name="can-focus">False</property>
         <property name="hhomogeneous">False</property>
         <property name="vhomogeneous">False</property>
+        <child>
+          <object class="GtkViewport" id="help_view">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <child>
+              <!-- n-columns=3 n-rows=5 -->
+              <object class="GtkGrid">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="row-spacing">9</property>
+                <property name="column-spacing">27</property>
+                <property name="row-homogeneous">True</property>
+                <property name="column-homogeneous">True</property>
+                <child>
+                  <object class="GtkAlignment">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="xscale">0</property>
+                    <property name="yscale">0</property>
+                    <child>
+                      <object class="GtkButton" id="main_camera_button1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="image">camera1</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkAlignment">
+                    <property name="name">main_shuffle_button</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="xscale">0</property>
+                    <property name="yscale">0</property>
+                    <child>
+                      <object class="GtkButton" id="main_reset_button1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="image">image3</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkAlignment">
+                    <property name="name">main_shuffle_button</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="xscale">0</property>
+                    <property name="yscale">0</property>
+                    <child>
+                      <object class="GtkButton" id="main_shuffle_button1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="image">shuffle2</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkAlignment">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="xscale">0</property>
+                    <property name="yscale">0</property>
+                    <child>
+                      <object class="GtkButton" id="main_solve_button1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="image">search1</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Begin camera cube capturing.
+Follow displayed instructions!</property>
+                    <attributes>
+                      <attribute name="weight" value="semibold"/>
+                      <attribute name="scale" value="3"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Shuffle your cube.</property>
+                    <attributes>
+                      <attribute name="weight" value="semibold"/>
+                      <attribute name="scale" value="3"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Reset your cube.</property>
+                    <attributes>
+                      <attribute name="weight" value="semibold"/>
+                      <attribute name="scale" value="3"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Try to find a solution.</property>
+                    <attributes>
+                      <attribute name="weight" value="semibold"/>
+                      <attribute name="scale" value="3"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Use your mouse to rotate your cube!</property>
+                    <attributes>
+                      <attribute name="weight" value="semibold"/>
+                      <attribute name="scale" value="2.2000000000000002"/>
+                    </attributes>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">4</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkAlignment">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="xscale">0</property>
+                    <property name="yscale">0</property>
+                    <child>
+                      <object class="GtkButton" id="menu_solver_button1">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="image">cube1</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">4</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkAlignment">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="xalign">1</property>
+                    <property name="yalign">0</property>
+                    <property name="xscale">0</property>
+                    <property name="yscale">0</property>
+                    <property name="top-padding">10</property>
+                    <property name="right-padding">10</property>
+                    <child>
+                      <object class="GtkButton" id="help_back_button">
+                        <property name="visible">True</property>
+                        <property name="can-focus">True</property>
+                        <property name="receives-default">True</property>
+                        <property name="image">cross</property>
+                      </object>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+                <child>
+                  <placeholder/>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="name">page4</property>
+            <property name="title" translatable="yes">page4</property>
+          </packing>
+        </child>
         <child>
           <object class="GtkViewport" id="menu_view">
             <property name="visible">True</property>
@@ -126,6 +402,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
+                        <property name="relief">none</property>
                         <child>
                           <object class="GtkImage" id="menu_site_image">
                             <property name="width-request">100</property>
@@ -214,6 +491,7 @@
           </object>
           <packing>
             <property name="title" translatable="yes">page0</property>
+            <property name="position">1</property>
           </packing>
         </child>
         <child>
@@ -228,6 +506,8 @@
               <object class="GtkBox">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkAlignment">
@@ -235,7 +515,6 @@
                     <property name="can-focus">False</property>
                     <property name="xalign">0</property>
                     <property name="yalign">0</property>
-                    <property name="xscale">0</property>
                     <property name="top-padding">10</property>
                     <property name="left-padding">10</property>
                     <child>
@@ -245,21 +524,53 @@
                         <property name="spacing">10</property>
                         <property name="homogeneous">True</property>
                         <child>
-                          <object class="GtkAlignment">
+                          <object class="GtkBox">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="spacing">10</property>
                             <child>
-                              <object class="GtkButton" id="main_back_button">
+                              <object class="GtkAlignment">
                                 <property name="visible">True</property>
-                                <property name="can-focus">True</property>
-                                <property name="receives-default">True</property>
-                                <property name="image">home</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkButton" id="main_back_button">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="image">home</property>
+                                  </object>
+                                </child>
                               </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkAlignment">
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
+                                  <object class="GtkButton" id="main_camera_button">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="image">camera</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">1</property>
+                              </packing>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
+                            <property name="padding">10</property>
                             <property name="position">0</property>
                           </packing>
                         </child>
@@ -267,12 +578,17 @@
                           <object class="GtkAlignment">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="xalign">1</property>
+                            <property name="yalign">0</property>
+                            <property name="xscale">0</property>
+                            <property name="yscale">0</property>
+                            <property name="right-padding">10</property>
                             <child>
-                              <object class="GtkButton" id="main_camera_button">
+                              <object class="GtkButton" id="main_help_button">
                                 <property name="visible">True</property>
                                 <property name="can-focus">True</property>
                                 <property name="receives-default">True</property>
-                                <property name="image">camera</property>
+                                <property name="image">help</property>
                               </object>
                             </child>
                           </object>
@@ -319,6 +635,7 @@
                     <property name="xscale">0</property>
                     <property name="yscale">0</property>
                     <property name="top-padding">150</property>
+                    <property name="left-padding">10</property>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
@@ -549,7 +866,7 @@
           <packing>
             <property name="name">page1</property>
             <property name="title" translatable="yes">page1</property>
-            <property name="position">1</property>
+            <property name="position">2</property>
           </packing>
         </child>
         <child>
@@ -661,7 +978,7 @@
           <packing>
             <property name="name">page2</property>
             <property name="title" translatable="yes">page2</property>
-            <property name="position">2</property>
+            <property name="position">3</property>
           </packing>
         </child>
         <child>
@@ -1072,7 +1389,7 @@
           <packing>
             <property name="name">page3</property>
             <property name="title" translatable="yes">page3</property>
-            <property name="position">3</property>
+            <property name="position">4</property>
           </packing>
         </child>
         <child>
@@ -1290,7 +1607,7 @@
           <packing>
             <property name="name">page0</property>
             <property name="title" translatable="yes">page0</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
       </object>
