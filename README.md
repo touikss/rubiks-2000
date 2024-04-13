@@ -33,6 +33,12 @@ Pour accéder au code du solver:
 ```
 $ cd rubiks-2000-v2
 ```
+Il est possible que vous deviez installer une dépendance pour utiliser la caméra. 
+
+```
+$ sudo apt-get install -y libv4l-dev
+```
+
 ## Sources:
 
 ### 3D :
