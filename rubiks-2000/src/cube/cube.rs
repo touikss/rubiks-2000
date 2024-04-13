@@ -1,326 +1,399 @@
-use super::defs::*;
-use super::enums::{ Corner, Edge };
-use super::face_cube::*;
-use std::fmt; // Usef for impl display
 use rand::Rng;
+use ui::imagery::color::ColorType;
+use std::fmt;
+use std::vec;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Debug, Copy)]
 pub struct Cube {
-    cp: [Corner; 8],
-    co: [u8; 8],
-    ep: [Edge; 12],
-    eo: [u8; 12],
+    size: usize,
+    faces: [[ColorType; 9]; 6],
 }
 
 impl Cube {
-    /// Create a new Cube.
-    /// # Args :
-    /// * `cp` : The corners permutations (positions) of the cube.
-    /// * `co` : The corners orientations of the cube.
-    /// * `ep` : The edges permutations (positions) of the cube.
-    /// * `eo` : The edges orientations of the cube.
-    pub const fn new(cp: [Corner; 8], co: [u8; 8], ep: [Edge; 12], eo: [u8; 12]) -> Self {
-        // hein?? pk elle peut etre const elle?? fada
-        Self { cp, co, ep, eo }
+    /// This function create and return a cube filled with empty cases
+    ///
+    /// # Args
+    /// * '_size' - the size of the cube
+    pub fn new_empty(_size: usize) -> Self {
+        Cube {
+            size: _size,
+            faces: [[ColorType::Empty; 9]; 6],
+        }
     }
 
-    /// Returns the corner permutations of the cube
-    pub fn get_cp(&self) -> [Corner; 8] {
-        self.cp
+    /// This function create and return a cube filled with the classical colors of
+    /// a rubik's cube
+    ///
+    /// # Args
+    /// * '_size' - the size of the cube
+    pub fn new_filled(_size: usize) -> Self {
+        let size = _size;
+        let green_face = [ColorType::Green; 9];
+        let white_face = [ColorType::White; 9];
+        let orange_face = [ColorType::Orange; 9];
+        let yellow_face = [ColorType::Yellow; 9];
+        let red_face = [ColorType::Red; 9];
+        let blue_face = [ColorType::Blue; 9];
+        let faces = [
+            white_face,
+            blue_face,
+            red_face,
+            green_face,
+            orange_face,
+            yellow_face,
+        ];
+        Cube { size, faces: faces }
     }
 
-    /// Returns the corner orientations of the cube
-    pub fn get_co(&self) -> [u8; 8] {
-        self.co
+    /// This function return the size of the cube
+    pub fn get_size(&self) -> usize {
+        self.size
     }
 
-    /// Returns the edge permutations of the cube
-    pub fn get_ep(&self) -> [Edge; 12] {
-        self.ep
+    pub fn get_faces(&self) -> [[ColorType; 9]; 6] {
+        self.faces
     }
 
-    /// Returns the edge orientations of the cube
-    pub fn get_eo(&self) -> [u8; 12] {
-        self.eo
+    pub fn set_facelet(&mut self, face: usize, i: u32, j: u32, color: ColorType) {
+        self.faces[face][(i + j * 3) as usize] = color;
     }
 
-    /// Multiply this cubie cube with another cubie cube "other", restricted to the corners. Does not change other.
-    pub fn corner_multiply(&mut self, other: Cube) {
-        let mut new_corner_perm = [0; 8];
-        let mut new_corner_ori = [0; 8];
-        let mut current_ori = 0;
+    pub fn dbg(&self) {
+        println!();
+        for (j, case) in self.faces[1].iter().enumerate() {
+            if j % self.size == 0 {
+                println!();
+                let space = " ".repeat(self.size * 2);
+                print!("{}", space);
+            }
+            case.pretty_print();
+        }
+        println!();
 
-        for c in 0..N_CORNERS {
-            new_corner_perm[c] = self.cp[other.cp[c] as usize] as u8;
-            let ori_self = self.co[other.cp[c] as usize] as i8;
-            let ori_other = other.co[c] as i8;
-            if ori_self < 3 && ori_other < 3 {
-                // two regular cubes
-
-                current_ori = ori_self + ori_other;
-                if current_ori >= 3 {
-                    current_ori -= 3;
-                }
-            } else if ori_self < 3 && ori_other >= 3 {
-                // cube b is in a mirrored state
-                println!("not rotating");
-                current_ori = ori_self + ori_other;
-                if current_ori >= 6 {
-                    current_ori -= 3;
-                }
-            } else if ori_self >= 3 && ori_other < 3 {
-                // cube a is in a mirrored state
-                println!("not rotating");
-                current_ori = ori_self - ori_other;
-                if current_ori < 3 {
-                    current_ori += 3;
-                }
-            } else if ori_self >= 3 && ori_other >= 3 {
-                // if both cubes are in mirrored states
-                println!("not rotating");
-                current_ori = ori_self - ori_other;
-                if current_ori < 0 {
-                    current_ori += 3;
+        for j in 0..self.size {
+            for f in [2, 0, 4, 5] {
+                for i in 0..self.size {
+                    self.faces[f][i + j * self.size].pretty_print();
                 }
             }
-            new_corner_ori[c] = current_ori;
+            println!();
+        }
+        for (j, case) in self.faces[3].iter().enumerate() {
+            if j % self.size == 0 {
+                if j != 0 {
+                    println!();
+                }
+                let space = " ".repeat(self.size * 2);
+                print!("{}", space);
+            }
+            case.pretty_print();
         }
 
-        for c in 0..N_CORNERS {
-            self.cp[c] = new_corner_perm[c].into();
-            self.co[c] = new_corner_ori[c] as u8;
-        }
+        println!();
     }
 
-    /// Multiply this Cubie Cube with another Cubie Cube 'other', restricted to the edges. Does not change 'other'.
-    pub fn edge_multiply(&mut self, other: Cube) {
-        let mut new_edge_permutation: Vec<u8> = vec![0; 12];
-        let mut new_edge_orientation: Vec<u8> = vec![0; 12];
-        for edge in 0..12 {
-            new_edge_permutation[edge] = self.ep[other.ep[edge] as usize] as u8;
-            // the new edge orientation = other orientation + current orientation
-            // we use other.ep[edge] rather than just edge to take in acount the permutation also !!
-            new_edge_orientation[edge] = (other.eo[edge] + self.eo[other.ep[edge] as usize]) % 2;
-        }
-        // Update the edge permutation and orientation of the current cube
-        for edge in 0..12 {
-            self.ep[edge] = new_edge_permutation[edge].into();
-            self.eo[edge] = new_edge_orientation[edge];
-        }
-    }
+    /// This function return a Vector of Color composing a certain colon on a face
+    /// Color are copied, it's not ref.
+    ///
+    /// # Args
+    /// * 'face' - the index of the face
+    /// * 'col' - the index of the colon
+    ///
+    /// # Return
+    ///
+    /// The colors composing this colonn in a vector
+    fn get_col(&self, face: usize, col: usize) -> Vec<ColorType> {
+        let mut res = vec![];
 
-    ///apply the differente move of the cube other to current cube
-    pub fn multiply(&mut self, other: Cube) {
-        self.corner_multiply(other);
-        self.edge_multiply(other);
-    }
-
-    /// Return the 'twist' of cube which mean the orientation of all its (8) corners represnted by one number between 0 and 2187.
-    /// 3 orientations, 8 corners but we ignore one because it's not possible that only one is twisted
-    /// => 3^7 = 2187 possibilities
-    /// Do not confuse with 'flip'
-    /// We ignore the last one (7th index)
-    pub fn get_twist(self) -> usize {
-        let mut ret = 0;
-        // from 0 to 7 because of the rubik's cube law (it's not possible that only one corner is twisted)
-        for i in 0..7 {
-            ret = 3 * ret + (self.co[i] as usize);
-        }
-        ret
-    }
-
-    pub fn set_twist(&mut self, mut twist: usize) {
-        let mut twist_parity = 0;
-        for i in (0..7).rev() {
-            self.co[i] = (twist % 3) as u8;
-            twist_parity += self.co[i];
-            twist /= 3;
-        }
-        self.co[7] = (3 - (twist_parity % 3)) % 3;
-    }
-
-    pub fn set_flip(&mut self, mut flip: usize) {
-        let mut flip_parity = 0;
-        for i in (0..11).rev() {
-            self.eo[i] = (flip % 2) as u8;
-            flip_parity += self.eo[i];
-            flip /= 2;
-        }
-        self.eo[11] = (2 - (flip_parity % 2)) % 2;
-    }
-
-    /// Return the 'flip' of cube which means the orientation of all its (12) edgesq represented by one number between 0 and 2048
-    /// 2 orientation, 12 corners but we ignore one because it's not possible that only one is twisted
-    /// => 2^11 = 2048 possibilities
-    /// Do not confuse with 'twist'
-    /// We ignore the last one (11th index )
-    pub fn get_flip(self) -> usize {
-        let mut ret = 0;
-        for i in 0..11 {
-            ret = 2 * ret + (self.eo[i] as usize);
-        }
-        ret
-    }
-
-    ///Return a facelet representation of the cube.
-    pub fn to_facelet_cube(self) -> FaceCube {
-        let mut face_cube = FaceCube::new();
-        for color in 0..N_COLORS {
-            let corner = self.cp[color as usize]; // corner j is at corner position i
-            let orientation = self.co[color as usize]; // orientation of C j at position i
-            for k in 0..3 {
-                let index = CORNER_FACELET[color as usize]
-                    [((k + orientation) % 3) as usize] as usize;
-                let new_color = CORNER_COLOR[corner as usize][k as usize];
-                face_cube.set_facelet(index, new_color);
+        for (index, case) in self.faces[face].iter().enumerate() {
+            if index % self.size == col {
+                res.push(*case);
             }
         }
 
-        for edge in 0..N_EDGES {
-            let j = self.ep[edge as usize]; // similar for Es
-            let orientation = self.eo[edge as usize];
-            for k in 0..2 {
-                let index = EDGE_FACELET[edge as usize][((k + orientation) % 2) as usize] as usize;
-                let new_color = EDGE_COLOR[j as usize][k as usize];
-                face_cube.set_facelet(index, new_color);
-            }
-        }
-        face_cube
+        res
     }
 
-    ///Give the parity of the corner permutation.
-    pub fn corner_parity(self) -> u8 {
-        let mut parity = 0;
-        for corner in (0..N_CORNERS).rev() {
-            for permutation in (corner..=0).rev() {
-                if (self.cp[permutation as usize] as u8) > (self.cp[corner as usize] as u8) {
-                    parity += 1;
-                }
+    /// This function return a Vector of Color composing a certain row on a face
+    /// Color are copied, it's not ref.
+    ///
+    /// # Args
+    /// * 'face' - the index of the face
+    /// * 'row' - the index of the row
+    ///
+    /// # Return
+    ///
+    /// The colors composing this row in a vector
+    fn get_row(&self, face: usize, row: usize) -> Vec<ColorType> {
+        let mut res = vec![];
+
+        let stop = self.size * (row + 1);
+        for (index, case) in self.faces[face].iter().enumerate().skip(self.size * row) {
+            if index < stop {
+                res.push(*case);
             }
         }
-        parity % 2
+        res
     }
 
-    ///Give the parity of the edge permutation. A solvable cube has the same corner and edge parity.
-    pub fn edge_parity(self) -> u8 {
-        let mut parity = 0;
-        for edge in (0..N_EDGES).rev() {
-            for permutation in (0..edge).rev() {
-                if (self.ep[permutation as usize] as u8) > (self.ep[edge as usize] as u8) {
-                    parity += 1;
-                }
+    /// This function return a Vector of Color composing a certain colon on a face
+    /// Before, it fill the colonn of this face with the colors passed in parameter
+    /// Color are copied, it's not ref.
+    ///
+    /// # Args
+    /// * 'face' - the index of the face
+    /// * 'col' - the index of the colon to modify and return
+    /// * 'rep' - the vector to use to replace the values in the colon
+    ///
+    /// # Return
+    ///
+    /// The colors composing this colonn (before it was changed) in a vector
+    fn fill_col(&mut self, face: usize, col: usize, rep: Vec<ColorType>) -> Vec<ColorType> {
+        let mut res = vec![];
+
+        for i in 0..self.size {
+            let acc = self.faces[face][col + i * self.size];
+            res.push(acc);
+            self.faces[face][col + i * self.size] = rep[i];
+        }
+        res
+    }
+
+    /// This function return a Vector of Color composing a certain row on a face
+    /// Before, it fill the row of this face with the colors passed in parameter
+    /// Color are copied, it's not ref.
+    ///
+    /// # Args
+    /// * 'face' - the index of the face
+    /// * 'row' - the index of the row to modify and return
+    /// * 'rep' - the vector to use to replace the values in the row
+    ///
+    /// # Return
+    ///
+    /// The colors composing this row (before it was changed) in a vector
+    fn fill_row(&mut self, face: usize, row: usize, rep: Vec<ColorType>) -> Vec<ColorType> {
+        let mut res = vec![];
+
+        for i in 0..self.size {
+            let acc = self.faces[face][row * self.size + i];
+            res.push(acc);
+            self.faces[face][row * self.size + i] = rep[i];
+        }
+        res
+    }
+
+    /// This function push a colon of a cube verticaly (without rotatning faces if needed)
+    /// So this is not a complete move
+    ///
+    /// # Args
+    /// * 'col' - the colon to push
+    ///
+    /// Warning: it only do this upward
+    fn push_v(&mut self, col: usize) {
+        let mut temp = self.get_col(3, col);
+        temp = self.fill_col(3, col, temp);
+        temp = self.fill_col(0, col, temp);
+        temp = self.fill_col(1, col, temp);
+        temp.reverse();
+        temp = self.fill_col(5, self.size - col - 1, temp);
+        temp.reverse();
+        let _ = self.fill_col(3, col, temp);
+    }
+
+    /// This function push a row of a cube horizontaly (without rotatning faces if needed)
+    /// So this is not a complete move
+    ///
+    /// # Args
+    /// * 'row' - the row to push
+    ///
+    /// Warning: it only do this to the right
+    fn push_h(&mut self, row: usize) {
+        let mut temp = self.get_row(2, row);
+        for f in [0, 4, 5] {
+            temp = self.fill_row(f, row, temp);
+        }
+        let _ = self.fill_row(2, row, temp);
+    }
+
+    /// This function push a row of a cube lateraly (without rotatning faces if needed)
+    /// So this is not a complete move
+    /// The row pushed belong to the up face (and those which are linked)
+    /// So it's not the same that push_h
+    ///
+    /// # Args
+    /// * 'row' - the row to push
+    ///
+    /// Warning: it only do this to the right
+    fn push_l(&mut self, row: usize) {
+        let mut temp = self.get_row(1, row);
+        temp = self.fill_col(4, self.size - row - 1, temp);
+        temp.reverse();
+        temp = self.fill_row(3, self.size - row - 1, temp);
+        temp = self.fill_col(2, row, temp);
+        temp.reverse();
+        let _ = self.fill_row(1, row, temp);
+    }
+
+    /// This function rotate a face to the left
+    /// It only rotate this face so it's not a complete move
+    ///
+    /// # Args
+    /// * 'face' - The face to rotate
+    fn rotate_left(&mut self, face: usize) {
+        let mut res = [ColorType::Empty; 9];
+        let mut col;
+        let mut count = 0;
+        for i in 0..3 {
+            col = self.get_col(face, 3 - i - 1);
+            for y in col.iter() {
+                res[count] = *y;
+                count += 1;
             }
         }
-        parity % 2
+        self.faces[face] = res;
     }
 
-    ///Check if cubiecube is valid.
-    pub fn verify(&self) -> bool {
-        let mut edge_count = [0; 12];
-        for i in 0..N_EDGES {
-            edge_count[self.ep[i as usize] as usize] += 1;
+    /// This function rotate a face to the right
+    /// It only rotate this face so it's not a complete move
+    ///
+    /// # Args
+    /// * 'face' - The face to rotate
+    fn rotate_right(&mut self, face: usize) {
+        for _ in 0..3 {
+            self.rotate_left(face);
         }
-        for edge in 0..N_EDGES {
-            if edge_count[edge as usize] != 1 {
-                println!("Some edges are invalid ...");
+    }
+
+    /// This function apply a downward vertical move to a slice of the cube
+    ///
+    /// # Args
+    /// * 'col' - the vertical slice to move
+    pub fn move_vp(&mut self, col: usize) {
+        for _ in 0..3 {
+            self.move_v(col);
+        }
+    }
+
+    /// This function apply a upward vertical move to a slice of the cube
+    ///
+    /// # Args
+    /// * 'col' - the vertical slice to move
+    pub fn move_v(&mut self, col: usize) {
+        self.push_v(col);
+        if col == 0 {
+            self.rotate_left(2);
+        } else if col == self.size - 1 {
+            self.rotate_right(4);
+        }
+    }
+
+    /// This function apply a horizontal move to the left to a slice of the cube
+    ///
+    /// # Args
+    /// * 'row' - the horizontal slice to move
+    pub fn move_hp(&mut self, row: usize) {
+        for _ in 0..3 {
+            self.move_h(row);
+        }
+    }
+
+    /// This function apply a horizontal move to the right to a slice of the cube
+    ///
+    /// # Args
+    /// * 'row' - the horizontal slice to move
+    pub fn move_h(&mut self, row: usize) {
+        self.push_h(row);
+        if row == 0 {
+            self.rotate_left(1);
+        } else if row == self.size - 1 {
+            self.rotate_right(3);
+        }
+    }
+
+    /// This function apply a lateral move to the left to a slice of the cube
+    ///
+    /// # Args
+    /// * 'row' - the lateral slice to move
+    pub fn move_lp(&mut self, row: usize) {
+        for _ in 0..3 {
+            self.move_l(row);
+        }
+    }
+
+    /// This function apply a lateral move to the right to a slice of the cube
+    ///
+    /// # Args
+    /// * 'row' - the lateral slice to move
+    pub fn move_l(&mut self, row: usize) {
+        self.push_l(row);
+        if row == 0 {
+            self.rotate_left(5);
+        } else if row == self.size - 1 {
+            self.rotate_right(0);
+        }
+    }
+
+    /// This function return true if a face is composed of a unique color,
+    /// false otherwise
+    ///
+    /// # Args
+    /// * 'face' - the face as a reference of a color vector
+    fn is_face_solved(&self, face: &Vec<ColorType>) -> bool {
+        let color = face[0];
+
+        for c in face.iter() {
+            if color != *c {
                 return false;
             }
         }
+        true
+    }
 
-        let mut verify_edge = 0;
-        for edge in 0..N_EDGES {
-            verify_edge += self.eo[edge as usize];
-        }
-        if verify_edge % 2 != 0 {
-            println!("Total edge flip is wrong ...");
-            return false;
-        }
-
-        let mut corner_count = [0; 8];
-        for corner in 0..N_CORNERS {
-            corner_count[self.cp[corner as usize] as usize] += 1;
-        }
-        for corner in 0..N_CORNERS {
-            if corner_count[corner as usize] != 1 {
-                println!("Some corners are invalid ...");
+    /// This function return true if cube is completed (all faces are uniform),
+    /// false otherwise
+    /*pub fn is_solved(&self) -> bool {
+        for f in self.faces.iter() {
+            if !self.is_face_solved(f) {
                 return false;
             }
         }
+        true
+    }*/
 
-        let mut verify_corner = 0;
-        for corner in 0..N_COLORS {
-            verify_corner += self.co[corner as usize];
-        }
-
-        if verify_corner % 3 != 0 {
-            println!("Total corner flip is wrong...");
-            return false;
-        }
-
-        if self.edge_parity() != self.corner_parity() {
-            println!("Wrong egde and corner parity...");
-            return false;
-        }
-
-        return true;
-    }
-
-    pub fn randomize(&mut self) {
+    /// This function shuffle the cube by doing some random moves
+    ///
+    /// # Args
+    /// * 'moves' - the number of move to do
+    pub fn shuffle(&mut self, moves: u32) {
         let mut rng = rand::thread_rng();
-        for _ in 0..100 {
-            let n = rng.gen_range(0..N_MOVES);
 
-            self.multiply(ALL_MOVES[n]);
+        for _ in 0..moves {
+            let r: u32 = rng.gen_range(1..=6);
+            let n: usize = rng.gen_range(0..self.size);
+
+            match r {
+                1 => self.move_h(n),
+                2 => self.move_hp(n),
+                3 => self.move_l(n),
+                4 => self.move_lp(n),
+                5 => self.move_v(n),
+                _ => self.move_vp(n),
+            }
         }
     }
 }
 
-
-/// WARNING: je l'ai changé pour qu'elle match avec les test des autres solveurs
-/// enlever le comments pour revenir à notre format de base
-
-/// Display implementation for CubieCube (to_string() method)
-/// # Format :
-/// (corner, orientation) ... (edge, orientation)
+/// This implementation allow to use our cube struct with prinlnt, print, write...
+///
+/// # Exemple
+/// println("{cube}", cube) -> WWBWWBRRBBBOBBYBBYRRRRRRYYYGGWGGWGGROOWOOWOOWGYYGYYGOO
 impl fmt::Display for Cube {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut string = String::new();
-        //string += "|";
-        //for edge in 0..12 {
-        for edge in [1, 0, 3, 2, 5, 4, 7, 6, 8, 9, 11, 10] {
-            // The 12 edges
-            //string += format!("({},{})", self.ep[edge], self.eo[edge]).as_str();
-            string += format!("{} ", self.ep[edge]).as_str();
+        for (_, face) in self.faces.iter().enumerate() {
+            for c in face {
+                write!(f, "{}", c)?;
+            }
         }
-        //for corner in 0..8 {
-            // NOTE: how to use the enum here rather than 0..8 ??
-            // The 8 corners
-            //string += format!("({},{})", self.cp[corner], self.co[corner]).as_str();
-
-
-        for corner in [0, 3, 2, 1, 4, 5, 6, 7] {  
-            let f = match self.cp[corner] {
-                Corner::URF => "UFR",
-                Corner::UFL => "ULF",
-                Corner::ULB => "UBL",
-                Corner::UBR => "URB",
-                Corner::DFR => "DRF",
-                Corner::DLF => "DFL",
-                Corner::DBL => "DLB",
-                Corner::DRB => "DBR"
-            };
-            
-            string += format!("{} ", f).as_str();
-        }
-        write!(f, "{}", string)
-    }
-}
-
-/// Compare row CubieCube.
-/// Allow this:
-/// if cube_a == cube_b {...}
-impl PartialEq for Cube {
-    fn eq(&self, other: &Self) -> bool {
-        self.cp == other.cp && self.co == other.co && self.ep == other.ep && self.eo == other.eo
+        Ok(())
     }
 }
