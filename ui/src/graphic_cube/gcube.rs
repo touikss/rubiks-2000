@@ -7,7 +7,6 @@ use std::{
 };
 
 use crate::cube::cube::Cube;
-use gtk::gdk::keys::constants::lstroke;
 use kiss3d::{
     camera::Camera,
     nalgebra::{Isometry3, Translation3, UnitQuaternion},
@@ -41,6 +40,25 @@ pub fn inv_move(mv: Move) -> Move {
         Move::Hp => Move::H,
         Move::L => Move::Lp,
         _ => Move::L
+    };
+    res
+}
+
+pub fn mv_to_string(mv: Move, n: usize) -> String {
+    let res = match (mv, n) {
+        (Move::V, 0) => String::from("Right"),
+        (Move::V, 2) => String::from("Left"),
+        (Move::L, 0) => String::from("Front"),
+        (Move::L, 2) => String::from("Back"),
+        (Move::H, 0) => String::from("Down"),
+        (Move::H, 2) => String::from("Up"),
+        (Move::Vp, 0) => String::from("Right'"),
+        (Move::Vp, 2) => String::from("Left'"),
+        (Move::Lp, 0) => String::from("Front'"),
+        (Move::Lp, 2) => String::from("Back'"),
+        (Move::Hp, 0) => String::from("Down'"),
+        (Move::Hp, 2) => String::from("Up'"),
+        _ => String::from("Move")
     };
     res
 }
@@ -246,7 +264,7 @@ impl Gcube {
                         let (r, g, b) = cube.get_faces()[5][((2 - y) * 3 + (x)) as usize].to_rgb();
                         cublet.back_face.set_color(r, g, b);
                     } else if k == -s {
-                        let (r, g, b) = cube.get_faces()[0][((2 - y) * 3 + (x)) as usize].to_rgb();
+                        let (r, g, b) = cube.get_faces()[0][((2 - y) * 3 + (2 - x)) as usize].to_rgb();
                         cublet.front_face.set_color(r, g, b);
                     }
                     if i == s {
@@ -283,7 +301,10 @@ impl Gcube {
         moves: u32,
         gtk_image: &mut gtk::Image,
         camera: &mut dyn Camera,
-    ) {
+    ) -> Vec<(Move, usize)> {
+
+        let mut res = vec![];
+
         let mut rng = rand::thread_rng();
 
         let mut prev = 0;
@@ -314,7 +335,10 @@ impl Gcube {
                 _ => Move::Vp,
             };
             self.apply_move(window, mov, n, gtk_image, camera, SHUFFLE_ANIMATION_TIME);
+            res.push((mov, n));
         }
+
+        res
     }
 
     /// This function make the graphic cube execute move with animation

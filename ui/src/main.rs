@@ -2,17 +2,7 @@ extern crate gtk;
 extern crate kiss3d;
 extern crate nalgebra as na;
 
-use glib::Propagation;
-use graphic_cube::gcube::{inv_move, Move};
-use gtk::atk::CoordType;
-use gtk::{gdk_pixbuf, prelude::*, Builder, Button, CssProvider, Label};
-
-use kiss3d::camera::Camera;
-use rscam::Config;
-use std::env;
-use std::rc::Rc;
-use std::time::{Duration, Instant};
-use std::{cell::RefCell, process::Command};
+use graphic_cube::gcube::{inv_move, mv_to_string, Move};
 use ui::imagery::{self, color::ColorType};
 mod cube;
 mod graphic_cube;
@@ -23,7 +13,21 @@ use graphic_cube::{
     gtk_binding::update_gtk_image,
 };
 
+use gtk::{gdk_pixbuf, prelude::*, Builder, Button, CssProvider, Label};
+
+use kiss3d::camera::Camera;
+use kiss3d::nalgebra::{
+    distance, Point3
+};
 use kiss3d::{camera::FirstPerson, light::Light, ncollide3d::math::Point, window::Window};
+
+use rscam::Config;
+use std::env;
+use std::f32::consts::PI;
+use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+use std::{cell::RefCell, process::Command};
 
 const TIMER_ID: &str = "timer_view";
 const MENU_ID: &str = "menu_view";
@@ -31,22 +35,26 @@ const MAIN_ID: &str = "main_view";
 const CAMERA_ID: &str = "camera_view";
 const SOLUTION_VIEW: &str = "solution_view";
 const VIEWS_ID: [&str; 5] = [TIMER_ID, MENU_ID, MAIN_ID, CAMERA_ID, SOLUTION_VIEW];
+// used to switch face during camera detection
+const SWITCH_FACE_CAMERA: [usize; 6] = [0, 2, 5, 4, 1, 3];
+const SENSITIVITY: f32 = 10.;
 
 const CAMERA_WIDTH: u32 = 640;
 const CAMERA_HEIGHT: u32 = 480; //640
-const RENDER_RATE: u64 = 500;
+const RENDER_RATE: u64 = 5; //500;
+const CAMERA_BASE: (f32, f32, f32) = (-5. * 0.8, 5. * 0.8, -7. * 0.8);
 
 const INFO_STRINGS: [&str; 11] = [
     "Modify your capture (click on facelets you want to change)",
-    "Turn your cube to the right and align it with the green squares",
+    "Turn your cube to the RIGHT and align it with the green squares",
     "Modify your capture (click on facelets you want to change)",
-    "Turn your cube to the right and align it with the green squares",
+    "Turn your cube to the RIGHT and align it with the green squares",
     "Modify your capture (click on facelets you want to change)",
-    "Turn your cube to the right and align it with the green squares",
+    "Turn your cube to the RIGHT and align it with the green squares",
     "Modify your capture (click on facelets you want to change)",
-    "Turn your cube upwards and align it with the green squares",
+    "Turn your cube to the RIGHT, then UPWARDS and align it with the green squares",
     "Modify your capture (click on facelets you want to change)",
-    "Turn your cube upwards TWICE and align it with the green squares",
+    "Turn your cube UPWARD TWICE and align it with the green squares",
     "Modify your capture (click on facelets you want to change)",
 ];
 
@@ -170,6 +178,7 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
 
     // the selected button the user wants to modify
     let selected_button: Rc<RefCell<Option<Button>>> = Rc::new(RefCell::new(None));
+    let selected_pos = Rc::new(RefCell::new((0, 0)));
 
     // load css provider
     let css_provider = CssProvider::new();
@@ -186,7 +195,7 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
     // init buttons
     for i in 0..3 {
         for j in 0..3 {
-            let button = Rc::new(RefCell::new(
+            let display_button = Rc::new(RefCell::new(
                 display_grid
                     .child_at(i as i32, j as i32)
                     .expect("nop")
@@ -195,42 +204,50 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
             ));
 
             // init css
-            let style_context = button.borrow_mut().style_context();
+            let style_context = display_button.borrow_mut().style_context();
             style_context.add_provider(&css_provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
 
             // add callback for display buttons
-            let button_clone = button.clone();
+            let display_button_clone = display_button.clone();
             let selection_grid_clone = selection_grid.clone();
             let selected_button_clone = Rc::clone(&selected_button);
-            button.borrow_mut().connect_clicked(move |_| {
+            let selected_pos_clone = Rc::clone(&selected_pos);
+            display_button.borrow_mut().connect_clicked(move |_| {
                 // show selection grid
                 selection_grid_clone.set_visible(true);
                 // change color
-                let button = button_clone.borrow_mut();
+                let button = display_button_clone.borrow_mut();
                 button.style_context().add_class("Empty-button");
                 // change selected button
                 let selected_button_clone = Rc::clone(&selected_button_clone);
                 *selected_button_clone.borrow_mut() = Some(button.clone());
+                *selected_pos_clone.borrow_mut() = (i, j);
             });
 
             // init selection buttons
             if let Some(color) = ColorType::iter().nth((i * 3 + j) as usize) {
-                // Update color tab
-                let step_counter_clone = Rc::clone(&step_counter);
-                let cube_clone = Rc::clone(&cube);
-                cube_clone
-                    .borrow_mut()
-                    .set_facelet(*step_counter_clone.borrow(), i, j, color);
-
                 let select_button: Button = selection_grid
                     .child_at(i as i32, j as i32)
                     .expect("pas assez de boutton pour select")
                     .downcast::<Button>()
                     .unwrap();
 
+                // Update color tab
+                let step_counter_clone = Rc::clone(&step_counter);
+                let cube_clone = Rc::clone(&cube);
                 let selected_button_clone = Rc::clone(&selected_button);
                 let selection_grid_clone = selection_grid.clone();
+                let selected_pos_clone = Rc::clone(&selected_pos);
                 select_button.connect_clicked(move |_| {
+                    let (x, y) = *selected_pos_clone.borrow();
+                    //save new color in cube
+                    cube_clone.borrow_mut().set_facelet(
+                        SWITCH_FACE_CAMERA[*step_counter_clone.borrow()],
+                        x,
+                        y,
+                        color,
+                    );
+
                     // hide selection grid
                     selection_grid_clone.set_visible(false);
                     let selected_button_clone = Rc::clone(&selected_button_clone);
@@ -269,8 +286,8 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
             let is_back_pressed_clone = Rc::clone(&is_back_pressed);
             let is_next_pressed_clone = Rc::clone(&is_next_pressed);
             if *is_back_pressed_clone.borrow_mut() || *is_next_pressed_clone.borrow_mut() > 11 {
-                show_view(builder, MAIN_ID);
                 camera.stop().unwrap();
+                show_view(builder, MAIN_ID);
                 break;
             }
 
@@ -301,7 +318,7 @@ fn open_camera(builder: &Builder) -> Option<Cube> {
                     let step_counter_clone = Rc::clone(&step_counter);
                     let color_tab_clone = Rc::clone(&cube);
                     color_tab_clone.borrow_mut().set_facelet(
-                        *step_counter_clone.borrow(),
+                        SWITCH_FACE_CAMERA[*step_counter_clone.borrow()],
                         i,
                         j,
                         color,
@@ -531,10 +548,10 @@ fn main_loop(builder: &Builder) {
     // z pr tourner de gauche à droite
     // la cam regarde en direction du cube
     // 5, 5, 7
-    let mut camera = FirstPerson::new(
-        Point::new(-5. * 0.8, 5. * 0.8, -7. * 0.8),
-        Point::new(0., 0., 0.),
-    );
+    let camera = Arc::new(Mutex::new(FirstPerson::new(
+        Point::new(CAMERA_BASE.0, CAMERA_BASE.1, CAMERA_BASE.2),
+        Point::origin(),
+    )));
 
     // le cube à link avec la caméra
     let cube = Rc::new(RefCell::new(Cube::new_filled(3)));
@@ -542,11 +559,61 @@ fn main_loop(builder: &Builder) {
     let cube_clone = Rc::clone(&cube);
     let mut gcube = Gcube::new(*cube_clone.borrow(), &mut window_3d);
 
+    // image de rendu
     let mut image: gtk::Image = builder
         .object("main_3d_image")
         .expect("no menu image found");
 
     let window: gtk::Window = builder.object("main_window").expect("no main window found");
+
+    // drag to change camera position setup
+    let drag_start_pos = Rc::new(RefCell::new((0., 0.)));
+    let drag_start_pos_clone = Rc::clone(&drag_start_pos);
+    window.connect_button_press_event(move |_, event| {
+        let (x, y) = (event.root().0, event.root().1);
+        *drag_start_pos_clone.borrow_mut() = (x as f32, y as f32);
+        gtk::glib::Propagation::Stop
+    });
+
+    // bool pour lock la caméra pdt les moves (sinn conflits)
+    let is_camera_drag_locked = Rc::new(RefCell::new(false));
+    let is_camera_drag_locked_clone = Rc::clone(&is_camera_drag_locked);
+
+    let eye = camera.lock().unwrap().eye();
+    let dist_x_z = distance(&Point3::new(eye.x, 0., eye.z), &Point3::origin());
+    let dist_y_z = distance(&Point3::new(0., eye.y, eye.z), &Point3::origin());
+
+    let camera_clone = Arc::clone(&camera);
+    window.connect_motion_notify_event(move |_, event| {
+        // on vérifie que la caméra est pas utilisée autre part
+        if !*is_camera_drag_locked_clone.borrow() {
+            let screen = gtk::gdk::Screen::default().unwrap();
+            let screen_width = screen.root_window().unwrap().width();
+            let screen_height = screen.root_window().unwrap().height();
+            let x = event.root().0 / screen_width as f64;
+            let y = event.root().1 / (screen_height as f64 * PI as f64) ;
+            let mut camera = camera_clone.lock().unwrap();
+            let mut eye = camera.eye();
+            eye.x = dist_x_z * (x as f32 * SENSITIVITY).cos();
+            eye.z = dist_x_z * (x as f32 * SENSITIVITY).sin();
+            eye.y = dist_y_z * -(y as f32 * SENSITIVITY).cos();
+            camera.look_at(eye, Point3::origin());
+        }
+        gtk::glib::Propagation::Stop
+    });
+
+    let camera_clone = Arc::clone(&camera);
+    let is_camera_drag_locked_clone = Rc::clone(&is_camera_drag_locked);
+    window.connect_button_release_event(move |_, _event| {
+        if !*is_camera_drag_locked_clone.borrow() {
+            let mut camera = camera_clone.lock().unwrap();
+            camera.look_at(
+                Point::new(CAMERA_BASE.0, CAMERA_BASE.1, CAMERA_BASE.2),
+                Point3::origin(),
+            );
+        }
+        gtk::glib::Propagation::Stop
+    });
 
     let gtk_exited = Rc::new(RefCell::new(false));
     let gtk_exited_clone = gtk_exited.clone();
@@ -573,8 +640,10 @@ fn main_loop(builder: &Builder) {
         }
     });
 
-    // Bou c pas boooo
+    // moves du solver
+    let moves: Rc<RefCell<Vec<(Move, usize)>>> = Rc::new(RefCell::new(vec![]));
 
+    // Bou c pas boooo
     // F is pressed
     let is_f_pressed = Rc::new(RefCell::new(false));
     let is_f_pressed_clone = Rc::clone(&is_f_pressed);
@@ -639,6 +708,16 @@ fn main_loop(builder: &Builder) {
         *is_shuffle_pressed_clone.borrow_mut() = true;
     });
 
+    // reset is pressed
+    let is_reset_pressed = Rc::new(RefCell::new(false));
+    let is_reset_pressed_clone = Rc::clone(&is_reset_pressed);
+    let main_reset_button: gtk::Button = builder
+        .object("main_reset_button")
+        .expect("no shuffle button found");
+    main_reset_button.connect_clicked(move |_| {
+        *is_reset_pressed_clone.borrow_mut() = true;
+    });
+
     // solve is pressed
     let is_solve_pressed = Rc::new(RefCell::new(false));
     let is_solve_pressed_clone = Rc::clone(&is_solve_pressed);
@@ -664,111 +743,133 @@ fn main_loop(builder: &Builder) {
 
     //3D loop
     loop {
+        // reset
+        if *is_reset_pressed.borrow_mut() {
+            let moves_clone = Rc::clone(&moves);
+            gcube.set_cube(Cube::new_filled(3));
+            *moves_clone.borrow_mut() = vec![];
+            *is_reset_pressed.borrow_mut() = false;
+        }
+
         // shuffle
-        let is_shuffle_pressed_clone = Rc::clone(&is_shuffle_pressed);
-        if *is_shuffle_pressed_clone.borrow_mut() {
-            gcube.shuffle(&mut window_3d, 40, &mut image, &mut camera);
-            *is_shuffle_pressed_clone.borrow_mut() = false;
+        if *is_shuffle_pressed.borrow_mut() {
+            *is_camera_drag_locked.borrow_mut() = true;
+            let moves_clone = Rc::clone(&moves);
+            *moves_clone.borrow_mut() =
+                gcube.shuffle(&mut window_3d, 20, &mut image, &mut *camera.lock().unwrap());
+            *is_shuffle_pressed.borrow_mut() = false;
+            *is_camera_drag_locked.borrow_mut() = false;
         }
 
         // solve
-        let is_solve_pressed_clone = Rc::clone(&is_solve_pressed);
-        if *is_solve_pressed_clone.borrow_mut() {
-            let mv = vec![(H,1), (L,0)];
-            solution_loop(&builder, &mut window_3d, &mut gcube, mv);
-            *is_solve_pressed_clone.borrow_mut() = false;
+        if *is_solve_pressed.borrow_mut() {
+            let moves_clone = Rc::clone(&moves);
+            solution_loop(
+                &builder,
+                &mut window_3d,
+                &mut gcube,
+                moves_clone.borrow().clone().into_iter().rev().collect(),
+            );
+            *is_solve_pressed.borrow_mut() = false;
         }
 
         // camera captured
-        let is_camera_captured_clone = Rc::clone(&is_camera_captured);
         let cube_clone = Rc::clone(&cube);
+        let moves_clone = Rc::clone(&moves);
         if *is_camera_captured.borrow_mut() {
             gcube.set_cube(*cube_clone.borrow());
-            *is_camera_captured_clone.borrow_mut() = false;
+            *moves_clone.borrow_mut() = vec![];
+            *is_camera_captured.borrow_mut() = false;
         }
 
         // F is pressed
-        let is_f_pressed_clone = Rc::clone(&is_f_pressed);
-        if *is_f_pressed_clone.borrow_mut() {
+        if *is_f_pressed.borrow_mut() {
+            *is_camera_drag_locked.borrow_mut() = true;
             gcube.apply_move(
                 &mut window_3d,
                 L,
                 0,
                 &mut image,
-                &mut camera,
+                &mut *camera.lock().unwrap(),
                 ANIMATION_TIME,
             );
-            *is_f_pressed_clone.borrow_mut() = false;
+            *is_f_pressed.borrow_mut() = false;
+            *is_camera_drag_locked.borrow_mut() = false;
         }
 
         // B is pressed
-        let is_b_pressed_clone = Rc::clone(&is_b_pressed);
-        if *is_b_pressed_clone.borrow_mut() {
+        if *is_b_pressed.borrow_mut() {
+            *is_camera_drag_locked.borrow_mut() = true;
             gcube.apply_move(
                 &mut window_3d,
                 L,
                 2,
                 &mut image,
-                &mut camera,
+                &mut *camera.lock().unwrap(),
                 ANIMATION_TIME,
             );
-            *is_b_pressed_clone.borrow_mut() = false;
+            *is_b_pressed.borrow_mut() = false;
+            *is_camera_drag_locked.borrow_mut() = false;
         }
 
         // U is pressed
-        let is_u_pressed_clone = Rc::clone(&is_u_pressed);
-        if *is_u_pressed_clone.borrow_mut() {
+        if *is_u_pressed.borrow_mut() {
+            *is_camera_drag_locked.borrow_mut() = true;
             gcube.apply_move(
                 &mut window_3d,
                 H,
                 2,
                 &mut image,
-                &mut camera,
+                &mut *camera.lock().unwrap(),
                 ANIMATION_TIME,
             );
-            *is_u_pressed_clone.borrow_mut() = false;
+            *is_u_pressed.borrow_mut() = false;
+            *is_camera_drag_locked.borrow_mut() = false;
         }
 
         // D is pressed
-        let is_d_pressed_clone = Rc::clone(&is_d_pressed);
-        if *is_d_pressed_clone.borrow_mut() {
+        if *is_d_pressed.borrow_mut() {
+            *is_camera_drag_locked.borrow_mut() = true;
             gcube.apply_move(
                 &mut window_3d,
                 H,
                 0,
                 &mut image,
-                &mut camera,
+                &mut *camera.lock().unwrap(),
                 ANIMATION_TIME,
             );
-            *is_d_pressed_clone.borrow_mut() = false;
+            *is_d_pressed.borrow_mut() = false;
+            *is_camera_drag_locked.borrow_mut() = false;
         }
 
         // L is pressed
-        let is_l_pressed_clone = Rc::clone(&is_l_pressed);
-        if *is_l_pressed_clone.borrow_mut() {
+        if *is_l_pressed.borrow_mut() {
+            *is_camera_drag_locked.borrow_mut() = true;
             gcube.apply_move(
                 &mut window_3d,
                 V,
                 2,
                 &mut image,
-                &mut camera,
+                &mut *camera.lock().unwrap(),
                 ANIMATION_TIME,
             );
-            *is_l_pressed_clone.borrow_mut() = false;
+            *is_l_pressed.borrow_mut() = false;
+            *is_camera_drag_locked.borrow_mut() = false;
         }
 
         // R is pressed
-        let is_r_pressed_clone = Rc::clone(&is_r_pressed);
-        if *is_r_pressed_clone.borrow_mut() {
+        if *is_r_pressed.borrow_mut() {
+            *is_camera_drag_locked.borrow_mut() = true;
             gcube.apply_move(
                 &mut window_3d,
                 V,
                 0,
                 &mut image,
-                &mut camera,
+                &mut *camera.lock().unwrap(),
                 ANIMATION_TIME,
             );
-            *is_r_pressed_clone.borrow_mut() = false;
+            *is_r_pressed.borrow_mut() = false;
+            *is_camera_drag_locked.borrow_mut() = false;
         }
 
         while gtk::events_pending() {
@@ -780,7 +881,9 @@ fn main_loop(builder: &Builder) {
         if Instant::now().duration_since(last_render_time) >= Duration::from_millis(RENDER_RATE) {
             last_render_time = Instant::now();
             let gtk_exited_clone = Rc::clone(&gtk_exited);
-            if !window_3d.render_with_camera(&mut camera) || *gtk_exited_clone.borrow() {
+            if !window_3d.render_with_camera(&mut *camera.lock().unwrap())
+                || *gtk_exited_clone.borrow()
+            {
                 break;
             }
 
@@ -850,11 +953,34 @@ fn solution_loop(
         *is_prev_pressed_clone.borrow_mut() = true;
     });
 
+    // skip left is pressed
+    let is_left_pressed = Rc::new(RefCell::new(false));
+    let is_left_pressed_clone = Rc::clone(&is_left_pressed);
+    let solve_left_button: gtk::Button = builder
+        .object("solution_left_button")
+        .expect("no next button found");
+    solve_left_button.connect_clicked(move |_| {
+        *is_left_pressed_clone.borrow_mut() = true;
+    });
+
+    // skip right is pressed
+    let is_right_pressed = Rc::new(RefCell::new(false));
+    let is_right_pressed_clone = Rc::clone(&is_right_pressed);
+    let solve_right_button: gtk::Button = builder
+        .object("solution_right_button")
+        .expect("no next button found");
+    solve_right_button.connect_clicked(move |_| {
+        *is_right_pressed_clone.borrow_mut() = true;
+    });
+
     // to controll 3D render frame rate
     let mut last_render_time = Instant::now();
 
     // step count
     let step_count = Rc::new(RefCell::new(0));
+
+    // label
+    let label: gtk::Label = builder.object("solution_label").expect("no label found");
 
     //3D loop
     loop {
@@ -865,16 +991,59 @@ fn solution_loop(
             break;
         }
 
+        // left
+        let is_left_pressed_clone = Rc::clone(&is_left_pressed);
+        let step_count_clone = Rc::clone(&step_count);
+        if *is_left_pressed_clone.borrow_mut() {
+            while *step_count_clone.borrow_mut() > 0 {
+                let (mov, n) = &moves[*step_count_clone.borrow_mut() - 1];
+                label.set_label(&mv_to_string(*mov, *n));
+                gcube.apply_move(
+                    &mut window_3d,
+                    *mov,
+                    *n,
+                    &mut image,
+                    &mut camera,
+                    ANIMATION_TIME,
+                );
+                *step_count_clone.borrow_mut() -= 1;
+            }
+            *is_left_pressed_clone.borrow_mut() = false;
+        }
+
+        // right
+        let is_right_pressed_clone = Rc::clone(&is_right_pressed);
+        let step_count_clone = Rc::clone(&step_count);
+        if *is_right_pressed_clone.borrow_mut() {
+            while *step_count_clone.borrow_mut() < moves.len() {
+                let (mov, n) = &moves[*step_count_clone.borrow_mut()];
+                let mov = inv_move(*mov);
+                label.set_label(&mv_to_string(mov, *n));
+                gcube.apply_move(
+                    &mut window_3d,
+                    mov,
+                    *n,
+                    &mut image,
+                    &mut camera,
+                    ANIMATION_TIME,
+                );
+                *step_count_clone.borrow_mut() += 1;
+            }
+            *is_right_pressed_clone.borrow_mut() = false;
+        }
+
         // next
         let is_next_pressed_clone = Rc::clone(&is_next_pressed);
         let step_count_clone = Rc::clone(&step_count);
         if *is_next_pressed_clone.borrow_mut() {
             if *step_count_clone.borrow_mut() < moves.len() {
                 *step_count_clone.borrow_mut() += 1;
-                let (mov, n) = &moves[ *step_count_clone.borrow_mut() - 1];
+                let (mov, n) = &moves[*step_count_clone.borrow_mut() - 1];
+                let mov = inv_move(*mov);
+                label.set_label(&mv_to_string(mov, *n));
                 gcube.apply_move(
                     &mut window_3d,
-                    *mov,
+                    mov,
                     *n,
                     &mut image,
                     &mut camera,
@@ -890,8 +1059,8 @@ fn solution_loop(
         if *is_prev_pressed_clone.borrow_mut() {
             if *step_count_clone.borrow_mut() > 0 {
                 *step_count_clone.borrow_mut() -= 1;
-                let (mov, n) = moves[ *step_count_clone.borrow_mut()];
-                let mov = inv_move(mov);
+                let (mov, n) = moves[*step_count_clone.borrow_mut()];
+                label.set_label(&mv_to_string(mov, n));
                 gcube.apply_move(
                     &mut window_3d,
                     mov,

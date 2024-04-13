@@ -55,7 +55,7 @@ impl Cube {
     }
 
     pub fn set_facelet(&mut self, face: usize, i: u32, j: u32, color: ColorType) {
-        self.faces[face][(i * 3 + j) as usize] = color;
+        self.faces[face][(i + j * 3) as usize] = color;
     }
 
     pub fn dbg(&self) {

@@ -33,6 +33,16 @@
     <property name="can-focus">False</property>
     <property name="pixbuf">menu.png</property>
   </object>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="stock">gtk-missing-image</property>
+  </object>
+  <object class="GtkImage" id="image2">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">undo.png</property>
+  </object>
   <object class="GtkImage" id="next">
     <property name="visible">True</property>
     <property name="can-focus">False</property>
@@ -42,6 +52,16 @@
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="pixbuf">angle-left.png</property>
+  </object>
+  <object class="GtkImage" id="prec1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">angle-double-left.png</property>
+  </object>
+  <object class="GtkImage" id="prec3">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">angle-double-right.png</property>
   </object>
   <object class="GtkImage" id="quit">
     <property name="visible">True</property>
@@ -57,6 +77,11 @@
     <property name="visible">True</property>
     <property name="can-focus">False</property>
     <property name="pixbuf">shuffle.png</property>
+  </object>
+  <object class="GtkImage" id="shuffle1">
+    <property name="visible">True</property>
+    <property name="can-focus">False</property>
+    <property name="pixbuf">undo.png</property>
   </object>
   <object class="GtkImage" id="timer_menu">
     <property name="visible">True</property>
@@ -276,7 +301,7 @@
                     <child>
                       <object class="GtkImage" id="main_3d_image">
                         <property name="visible">True</property>
-                        <property name="can-focus">False</property>
+                        <property name="can-focus">True</property>
                         <property name="pixbuf">camera.png</property>
                       </object>
                     </child>
@@ -449,6 +474,26 @@
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <child>
+                                  <object class="GtkButton" id="main_reset_button">
+                                    <property name="visible">True</property>
+                                    <property name="can-focus">True</property>
+                                    <property name="receives-default">True</property>
+                                    <property name="image">image2</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">True</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkAlignment">
+                                <property name="name">main_shuffle_button</property>
+                                <property name="visible">True</property>
+                                <property name="can-focus">False</property>
+                                <child>
                                   <object class="GtkButton" id="main_shuffle_button">
                                     <property name="visible">True</property>
                                     <property name="can-focus">True</property>
@@ -460,7 +505,7 @@
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">0</property>
+                                <property name="position">1</property>
                               </packing>
                             </child>
                             <child>
@@ -479,7 +524,7 @@
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">True</property>
-                                <property name="position">1</property>
+                                <property name="position">2</property>
                               </packing>
                             </child>
                           </object>
@@ -974,7 +1019,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="xscale">0.20000000298023224</property>
-                    <property name="top-padding">10</property>
+                    <property name="top-padding">120</property>
                     <property name="bottom-padding">10</property>
                     <child>
                       <object class="GtkButton" id="camera_next_button">
@@ -1103,21 +1148,46 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">2</property>
+                    <property name="position">1</property>
                   </packing>
+                </child>
+                <child>
+                  <placeholder/>
                 </child>
                 <child>
                   <object class="GtkAlignment">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="xscale">0.33000001311302185</property>
+                    <property name="xscale">0</property>
                     <property name="yscale">0</property>
-                    <property name="top-padding">150</property>
+                    <property name="top-padding">100</property>
                     <child>
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
+                        <property name="spacing">20</property>
                         <property name="homogeneous">True</property>
+                        <child>
+                          <object class="GtkAlignment">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="xscale">0</property>
+                            <property name="yscale">0</property>
+                            <child>
+                              <object class="GtkButton" id="solution_left_button">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="image">prec1</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
                         <child>
                           <object class="GtkAlignment">
                             <property name="visible">True</property>
@@ -1136,25 +1206,31 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">0</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkAlignment">
+                          <object class="GtkAlignment" id="solution_play_button">
                             <property name="visible">True</property>
                             <property name="can-focus">False</property>
+                            <property name="xscale">0</property>
+                            <property name="yscale">0</property>
                             <child>
-                              <object class="GtkLabel">
+                              <object class="GtkLabel" id="solution_label">
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
-                                <property name="label" translatable="yes">label</property>
+                                <property name="label" translatable="yes">Move</property>
+                                <attributes>
+                                  <attribute name="weight" value="bold"/>
+                                  <attribute name="scale" value="2"/>
+                                </attributes>
                               </object>
                             </child>
                           </object>
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
@@ -1175,7 +1251,28 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">True</property>
-                            <property name="position">2</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkAlignment">
+                            <property name="visible">True</property>
+                            <property name="can-focus">False</property>
+                            <property name="xscale">0</property>
+                            <property name="yscale">0</property>
+                            <child>
+                              <object class="GtkButton" id="solution_right_button">
+                                <property name="visible">True</property>
+                                <property name="can-focus">True</property>
+                                <property name="receives-default">True</property>
+                                <property name="image">prec3</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">4</property>
                           </packing>
                         </child>
                       </object>

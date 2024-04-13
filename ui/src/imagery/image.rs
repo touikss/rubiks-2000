@@ -1,12 +1,10 @@
 use crate::imagery::{
-    color::{self, ColorType}, shape,
-    utils::{round, GREEN, ORANGE, RED, WHITE, YELLOW},
+    color::*,
+    utils::*,
 };
 
-use super::{color::Color, shape::*, utils::*};
+use super::{color::Color, shape::*};
 
-use gtk::{ffi::GTK_CALENDAR_NO_MONTH_CHANGE, gdk::{keys::constants::Yellow, shows_events}};
-use rand::Rng;
 
 use std::collections::HashMap;
 
@@ -144,16 +142,12 @@ impl Image {
 
     // Apply the mass detection
     pub fn apply_mass_detection(&mut self) {
-        let mut rng = rand::thread_rng();
-
         let mut count: u32 = 0;
 
         let n_width = self.width / RES_FACTOR;
         let n_height = self.height / RES_FACTOR;
 
         let mut marqued: Vec<Vec<bool>> = vec![vec![false; n_height as usize]; n_width as usize];
-
-        let mut masses: Vec<Shape> = vec![];
 
         for px in 0..n_width {
             for py in 0..n_height {
@@ -226,11 +220,6 @@ impl Image {
         }
     }
 
-    pub fn equalize(&mut self) {
-        for x in 0..self.width {
-            for y in 0..self.height {}
-        }
-    }
 
     pub fn reduce(&mut self) {
         for x in (0..self.width).step_by(RES_FACTOR as usize) {
