@@ -3,17 +3,10 @@
 
 ## Fonctionnalités
 
-- Détection de l'état via la webcam &#x231B;
-- Résolution du cube en un nombre de coup minimum &#x231B;
-- Affichage de la solution en 3D &#x231B;
-- Tout cela dans une UI ergonomique! &#x231B;
-
-## Avancement actuel:
-Le projet n'est pas encore entièrement fonctionnel. Revenez dans 3 mois ;)
-Le solver est en bonne voie!
-La 3D est bien avancée.
-La détéction du cube arrive!!!
-L'UI arrivera plus tard...
+- Détection de l'état via la webcam 
+- Résolution du cube en un nombre de coup minimum 
+- Affichage de la solution en 3D 
+- Tout cela dans une UI ergonomique! 
 
 ## Utilisation
 
@@ -24,20 +17,16 @@ Clonez le dépôt sur votre machine locale.
 $ git clone git@github.com:TheodoreDgst/rubiks-2000.git
 ```
 
-Pour tester l'affichage 3D:
+Installez les dépendances (gtk, caméra et rendu 3d):
 ```
-$ cd rubiks-2000-first-graphic
-$ cargo run
+$ sudo apt install libglib2.0-dev libcairo2-dev libatk1.0-dev libgtk-3-dev libv4l-dev
 ```
-Pour accéder au code du solver:
-```
-$ cd rubiks-2000-v2
-```
-Il est possible que vous deviez installer une dépendance pour utiliser la caméra. 
 
+Vérifiez que vos pilotes graphiques sont à jour:
 ```
-$ sudo apt-get install -y libv4l-dev
+$ 
 ```
+
 
 ## Sources:
 
@@ -48,6 +37,7 @@ $ sudo apt-get install -y libv4l-dev
 * La [documentation](https://docs.rs/rscam/latest/rscam/) de RSCam
 
 ### Solver :
+* Notre principale source pour l'implémentation de [Kociemba](https://kociemba.org/cube.htm)
 * Un bref [papier](https://www.jetir.org/papers/JETIR1906707.pdf) récapitulatif
 * Un papier sur les [différents algorithmes](https://www.diva-portal.org/smash/get/diva2:816583/FULLTEXT01.pdf) existants, bref état de l'art
 * Une [explication](http://cube20.org/) sur le "God's number"
