@@ -391,6 +391,10 @@ pub mod debug {
 }
 
 fn main() {
+    // kiss3d (GLFW) shows its hidden windows on wayland: force X11/XWayland
+    env::remove_var("WAYLAND_DISPLAY");
+    env::set_var("GDK_BACKEND", "x11");
+
     Parameters::set_verbose(true);
 
     // set it for debug
