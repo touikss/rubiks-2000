@@ -21,6 +21,8 @@ use super::{ utils::*, widget_pool::WidgetPool };
 
 use gtk::prelude::*;
 
+use crate::graphic_cube::gtk_binding::{ make_image_resizable, set_image_scaled };
+
 use kiss3d::{
     camera::{ Camera, FirstPerson },
     light::Light,
@@ -122,6 +124,7 @@ impl RenderData {
 
         // the gtk rendering image
         let gtk_image: gtk::Image = widget_pool.get(render_image_name);
+        make_image_resizable(&gtk_image);
 
         Self {
             window,
@@ -370,7 +373,7 @@ impl RenderData {
         //}
 
         // update the gtk image with the created pixel buffer
-        self.gtk_image.set_from_pixbuf(Some(&pixbuf));
+        set_image_scaled(&self.gtk_image, &pixbuf);
     }
 
     /// Send a raycast at a certain point on the kiss3D render and return the first facelet it collide.
