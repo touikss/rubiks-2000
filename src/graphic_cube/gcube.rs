@@ -11,7 +11,7 @@ use super::gtk_binding::update_gtk_image;
 // others
 use kiss3d::{
     camera::Camera,
-    nalgebra::{ Isometry3, Point3, Quaternion, Translation3, Unit, UnitQuaternion },
+    nalgebra::{ Isometry3, Point3, Quaternion, Translation3, Unit, UnitQuaternion, Vector3 },
     scene::SceneNode,
     window::Window,
 };
@@ -170,6 +170,8 @@ pub struct GFacelet {
     y_max: f32,
     z_min: f32,
     z_max: f32,
+    /// Vertices in the global space, for exact raycast.
+    vertices: Vec<Point3<f32>>,
 }
 
 impl GFacelet {
@@ -198,6 +200,7 @@ impl GFacelet {
             y_max: 0.0,
             z_min: 0.0,
             z_max: 0.0,
+            vertices: Vec::new(),
         };
 
         facelet_node.update();
@@ -222,6 +225,7 @@ impl GFacelet {
         let parent_transform = self.parent.data().local_transformation();
         let transform = self.node.data().local_transformation();
 
+        self.vertices.clear();
         let mut f = |vertices: &[Point3<f32>]| {
             // go through the vertices
             for vertex in vertices {
@@ -233,6 +237,8 @@ impl GFacelet {
                 let gcube_vertex = parent_transform.transform_point(&local_vertex);
                 // vertex in the global space
                 let global_vertex = gcube_transform.transform_point(&gcube_vertex);
+
+                self.vertices.push(global_vertex);
 
                 // get mins and maxs
                 x_min = x_min.min(global_vertex.x);
@@ -273,6 +279,36 @@ impl GFacelet {
         self.y_max = y_max;
         self.z_min = z_min;
         self.z_max = z_max;
+    }
+
+    /// Distance along the ray (`origin`, `dir`) to this facelet, if the ray hits it.
+    fn intersect(&self, origin: &Point3<f32>, dir: &Vector3<f32>) -> Option<f32> {
+        // orthonormal basis (e1, e2, n) of the facelet plane
+        let v0 = *self.vertices.first()?;
+        let e1 = self.vertices.iter().map(|v| v - v0).find(|e| e.norm() > 1e-3)?.normalize();
+        let n = self.vertices.iter().map(|v| e1.cross(&(v - v0))).find(|c| c.norm() > 1e-3)?.normalize();
+        let e2 = n.cross(&e1);
+
+        // ignore facelets facing away (seen through the gaps between cublets),
+        // the cube being centered on the origin
+        if v0.coords.dot(&n) * dir.dot(&n) >= 0.0 {
+            return None;
+        }
+        let t = (v0 - origin).dot(&n) / dir.dot(&n);
+        if t < 0.0 {
+            return None;
+        }
+        let p = origin + dir * t - v0;
+
+        // the hit point must be inside the facelet rectangle
+        let inside = |e: &Vector3<f32>| {
+            let (min, max) = self.vertices
+                .iter()
+                .map(|v| (v - v0).dot(e))
+                .fold((f32::MAX, f32::MIN), |(a, b), x| (a.min(x), b.max(x)));
+            (min..=max).contains(&p.dot(e))
+        };
+        (inside(&e1) && inside(&e2)).then_some(t)
     }
 }
 
@@ -744,6 +780,16 @@ impl GCube {
             }
         }
         None
+    }
+
+    /// Index of the nearest facelet hit by the ray (`origin`, `dir`), if any.
+    pub fn raycast_facelet(&self, origin: &Point3<f32>, dir: &Vector3<f32>) -> Option<usize> {
+        self.gfacelets
+            .iter()
+            .enumerate()
+            .filter_map(|(i, f)| f.as_ref()?.intersect(origin, dir).map(|t| (i, t)))
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(i, _)| i)
     }
 
     /// Update all the vertices of each cublet and facelets of the cube.

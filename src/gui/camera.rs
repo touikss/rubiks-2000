@@ -741,13 +741,13 @@ fn connect_mouse_signals(
     let rd_clone = rd_arc.clone();
 
     // a movment is detected inside the 3d image
-    event_box_3d.connect_motion_notify_event(move |widget, event| {
+    event_box_3d.connect_motion_notify_event(move |_, event| {
         if !*is_clicked_clone.borrow() && !*has_selected_clone.borrow() {
             // check if we can access the render data
             // if not, it is probably just that we are already rendering move and so we do not want
             // to do ray casting
             if let Some(rd) = &mut rd_clone.try_lock().ok() {
-                let (x, y) = event.position();
+                let (x, y) = event.root();
 
                 // if it exists, reset the color of the previous facelet hovered
                 let mut prev_facelet = prev_clone.borrow_mut();
@@ -756,12 +756,7 @@ fn connect_mouse_signals(
                 }
 
                 // check for raycast
-                if let Some(facelet) = rd.raycast(
-                    x as f32,
-                    y as f32,
-                    widget.allocation().width() as f32,
-                    widget.allocation().height() as f32,
-                ) {
+                if let Some(facelet) = rd.raycast(x, y) {
                     // if a facelet is hovered, change its color
                     if change_facelet_color(rd, Some(facelet), DELTA_COLOR) {
                         *prev_facelet = Some(facelet);

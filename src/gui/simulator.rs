@@ -664,15 +664,13 @@ fn connect_mouse_signals(wp: &WidgetPool, rd_arc: Arc<Mutex<RenderData>>) {
     let is_clicked_clone = is_clicked.clone();
     let rd_clone = rd_arc.clone();
 
-    event_box_3d.connect_motion_notify_event(move |widget, event| {
+    event_box_3d.connect_motion_notify_event(move |_, event| {
         if !*is_clicked_clone.borrow() && !*has_selected_clone.borrow() {
             // check if we can access the render data
             // if not, it is probably just that we are already rendering move and so we do not want
             // to do ray casting
             if let Some(rd) = &mut rd_clone.try_lock().ok() {
-                let (x, mut y) = event.position();
-                // because there is a padding
-                y -= 50.0;
+                let (x, y) = event.root();
 
                 // if it exists, reset his color
                 let mut prev_facelet = prev_clone.borrow_mut();
@@ -681,12 +679,7 @@ fn connect_mouse_signals(wp: &WidgetPool, rd_arc: Arc<Mutex<RenderData>>) {
                 }
 
                 // check for raycast
-                if let Some(facelet) = rd.raycast(
-                    x as f32,
-                    y as f32,
-                    widget.allocation().width() as f32,
-                    (widget.allocation().height() as f32) - 50.0,
-                ) {
+                if let Some(facelet) = rd.raycast(x, y) {
                     if change_facelet_color(rd, Some(facelet), delta_color) {
                         *prev_facelet = Some(facelet);
                     }

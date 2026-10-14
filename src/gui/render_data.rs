@@ -380,47 +380,34 @@ impl RenderData {
     ///
     /// ## Args
     ///
-    /// * `x` - the abscisse of the point
-    /// * `y` - the ordinates of the point
-    /// * `window_width` - the width of the window
-    /// * `window_height` - the height of the window
+    /// * `root_x` - the abscisse of the point on the screen
+    /// * `root_y` - the ordinates of the point on the screen
     ///
     /// ## Returns
     ///
     /// * the index in the `gcube` of the facelet pointed if it exists
     /// * [`None`] otherwise
-    pub fn raycast(
-        &mut self,
-        x: f32,
-        y: f32,
-        window_width: f32,
-        window_height: f32
-    ) -> Option<usize> {
-        // convert it in kiss3D cursor coordinates depending on the image size
+    pub fn raycast(&mut self, root_x: f64, root_y: f64) -> Option<usize> {
+        // screen coordinates -> coordinates in the displayed render, which is scaled and
+        // centered in the gtk image (whose allocation is relative to its gdk window)
+        let (_, ox, oy) = self.gtk_image.window()?.origin();
+        let alloc = self.gtk_image.allocation();
+        let pixbuf = self.gtk_image.pixbuf()?;
+        let (pw, ph) = (pixbuf.width() as f32, pixbuf.height() as f32);
+        let x = (root_x as f32) - ((ox + alloc.x()) as f32) - ((alloc.width() as f32) - pw) / 2.0;
+        let y = (root_y as f32) - ((oy + alloc.y()) as f32) - ((alloc.height() as f32) - ph) / 2.0;
+
         let cursor = Point2::new(x, y);
 
-        // the size of the gtk image where is rendered kiss 3D
-        let size = Vector2::new(window_width, window_height);
+        // the size of the displayed render
+        let size = Vector2::new(pw, ph);
 
         // project the cursor point into the 3D space to get a direction
         // point = camera pos almost
         let (point, dir) = self.camera.unproject(&cursor, &size);
 
-        // how many point to test for ray casting
-        let point_factor = 10 as f32;
-
-        for i in 4 * (point_factor as i32)..10 * (point_factor as i32) {
-            // create point on the line pointed
-            let x = point.x + ((i as f32) * dir.x) / point_factor;
-            let y = point.y + ((i as f32) * dir.y) / point_factor;
-            let z = point.z + ((i as f32) * dir.z) / point_factor;
-
-            // check collision
-            if let Some(facelet) = self.gcube.find_facelet_colliding(x, y, z) {
-                return Some(facelet);
-            }
-        }
-        None
+        // nearest facelet hit
+        self.gcube.raycast_facelet(&point, &dir)
     }
 
     pub fn render_preview_move(&mut self, mv: Move) {
